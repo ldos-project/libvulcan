@@ -24,8 +24,9 @@ public:
     PolicyPlugin(const PolicyPlugin&) = delete;
     PolicyPlugin& operator=(const PolicyPlugin&) = delete;
 
-    void configure_rank(vulcan::feature_registry& reg, vulcan::rank_config& cfg) const {
-        using fn_t = void(*)(vulcan::feature_registry&, vulcan::rank_config&);
+    void configure_rank(vulcan::feature_registry& reg, vulcan::store_config& sc,
+                         vulcan::rank_config& cfg) const {
+        using fn_t = void(*)(vulcan::feature_registry&, vulcan::store_config&, vulcan::rank_config&);
         dlerror();
         auto fn = reinterpret_cast<fn_t>(dlsym(handle_, "vulcan_configure_rank"));
         const char* err = dlerror();
@@ -34,11 +35,12 @@ public:
                 "Symbol 'vulcan_configure_rank' not found in " + path_ +
                 (err ? std::string(": ") + err : std::string{}));
         }
-        fn(reg, cfg);
+        fn(reg, sc, cfg);
     }
 
-    void configure_value(vulcan::feature_registry& reg, vulcan::value_config& cfg) const {
-        using fn_t = void(*)(vulcan::feature_registry&, vulcan::value_config&);
+    void configure_value(vulcan::feature_registry& reg, vulcan::store_config& sc,
+                          vulcan::value_config& cfg) const {
+        using fn_t = void(*)(vulcan::feature_registry&, vulcan::store_config&, vulcan::value_config&);
         dlerror();
         auto fn = reinterpret_cast<fn_t>(dlsym(handle_, "vulcan_configure_value"));
         const char* err = dlerror();
@@ -47,7 +49,7 @@ public:
                 "Symbol 'vulcan_configure_value' not found in " + path_ +
                 (err ? std::string(": ") + err : std::string{}));
         }
-        fn(reg, cfg);
+        fn(reg, sc, cfg);
     }
 
 private:
@@ -101,6 +103,10 @@ PYBIND11_MODULE(_vulcan, m) {
             [](vulcan::feature_registry& r) -> vulcan::feature_registry::ObjectFeatures& { return r.object; },
             py::return_value_policy::reference_internal);
 
+    // ---- Store config -----------------------------------------------------------
+    py::class_<vulcan::store_config>(m, "StoreConfig")
+        .def(py::init<>());
+
     // ---- Configs ---------------------------------------------------------------
     py::class_<vulcan::policy_config>(m, "PolicyConfig")
         .def("set_information", &vulcan::policy_config::set_information, py::arg("info"))
@@ -114,7 +120,7 @@ PYBIND11_MODULE(_vulcan, m) {
         .def(py::init<>());
 
     // ---- Feature store ---------------------------------------------------------
-    py::class_<vulcan::feature_store>(m, "FeatureStore")
+    py::class_<vulcan::feature_store, std::shared_ptr<vulcan::feature_store>>(m, "FeatureStore")
         .def("update",
              py::overload_cast<vulcan::feature_handle<double>, double>(&vulcan::feature_store::update),
              py::arg("handle"), py::arg("value"))
@@ -131,40 +137,48 @@ PYBIND11_MODULE(_vulcan, m) {
     // ---- Policies --------------------------------------------------------------
     py::class_<vulcan::rank_policy>(m, "RankPolicy")
         .def_property_readonly("feature_store",
-            py::overload_cast<>(&vulcan::rank_policy::get_feature_store),
+            [](vulcan::rank_policy& p) -> vulcan::feature_store& { return p.get_feature_store(); },
             py::return_value_policy::reference_internal)
         .def("add_object", &vulcan::rank_policy::add_object, py::arg("obj_id"))
         .def("remove_object", &vulcan::rank_policy::remove_object, py::arg("obj_id"))
         .def("decide", &vulcan::rank_policy::decide)
+        .def("rank_candidates", &vulcan::rank_policy::rank_candidates)
         .def("get_prompt", &vulcan::rank_policy::get_prompt);
 
     py::class_<vulcan::value_policy>(m, "ValuePolicy")
         .def_property_readonly("feature_store",
-            py::overload_cast<>(&vulcan::value_policy::get_feature_store),
+            [](vulcan::value_policy& p) -> vulcan::feature_store& { return p.get_feature_store(); },
             py::return_value_policy::reference_internal)
         .def("decide", &vulcan::value_policy::decide)
         .def("get_prompt", &vulcan::value_policy::get_prompt);
 
+    // ---- Factory functions -----------------------------------------------------
+    m.def("make_shared_feature_store",
+        [](const vulcan::feature_registry& reg, const vulcan::store_config& sc) {
+            return vulcan::make_shared_feature_store(reg, sc);
+        }, py::arg("registry"), py::arg("store_config"));
+
     m.def("instantiate_rank_policy",
-        [](const vulcan::feature_registry& reg, const vulcan::rank_config& cfg) {
-            return std::make_unique<vulcan::rank_policy>(reg, cfg);
-        }, py::arg("registry"), py::arg("config"));
+        [](const vulcan::feature_registry& reg, const vulcan::rank_config& cfg,
+           std::shared_ptr<vulcan::feature_store> store) {
+            return std::make_unique<vulcan::rank_policy>(reg, cfg, std::move(store));
+        }, py::arg("registry"), py::arg("config"), py::arg("store"));
 
     m.def("instantiate_value_policy",
-        [](const vulcan::feature_registry& reg, const vulcan::value_config& cfg) {
-            return std::make_unique<vulcan::value_policy>(reg, cfg);
-        }, py::arg("registry"), py::arg("config"));
+        [](const vulcan::feature_registry& reg, const vulcan::value_config& cfg,
+           std::shared_ptr<vulcan::feature_store> store) {
+            return std::make_unique<vulcan::value_policy>(reg, cfg, std::move(store));
+        }, py::arg("registry"), py::arg("config"), py::arg("store"));
 
     // ---- Policy plugin loader --------------------------------------------------
     py::class_<PolicyPlugin>(m, "PolicyPlugin")
         .def("configure_rank", &PolicyPlugin::configure_rank,
-             py::arg("registry"), py::arg("config"))
+             py::arg("registry"), py::arg("store_config"), py::arg("config"))
         .def("configure_value", &PolicyPlugin::configure_value,
-             py::arg("registry"), py::arg("config"));
+             py::arg("registry"), py::arg("store_config"), py::arg("config"));
 
     m.def("load_policy", [](const std::string& path) {
         return std::make_unique<PolicyPlugin>(path);
     }, py::arg("path"),
-       "Load a compiled .so containing an EVOLVE-block policy. "
-       "The .so must export extern \"C\" vulcan_configure_rank or vulcan_configure_value.");
+       "Load a compiled .so containing an EVOLVE-block policy.");
 }

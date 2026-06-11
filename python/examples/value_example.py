@@ -22,6 +22,9 @@ def main() -> None:
         "prev_cwnd", "Congestion window size returned by the previous decision"
     )
 
+    plugin = vulcan.load_policy(POLICY_SO)
+
+    store_cfg = vulcan.StoreConfig()
     cfg = vulcan.ValueConfig()
     cfg.set_information(
         "You are building a congestion control policy for a network flow. "
@@ -29,14 +32,12 @@ def main() -> None:
         "(cwnd) size in packets. You have access to RTT measurements, queue length, "
         "and the previous cwnd value to guide your decision."
     )
+    plugin.configure_value(reg, store_cfg, cfg)
 
-    plugin = vulcan.load_policy(POLICY_SO)
-    plugin.configure_value(reg, cfg)
-
-    policy = vulcan.instantiate_value_policy(reg, cfg)
+    store = vulcan.make_shared_feature_store(reg, store_cfg)
+    policy = vulcan.instantiate_value_policy(reg, cfg, store)
     print(policy.get_prompt())
 
-    store = policy.feature_store
     random.seed(0)
     for t in range(10):
         store.update(rtt, 50.0 + random.randint(0, 99))

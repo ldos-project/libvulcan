@@ -2,6 +2,7 @@
 
 #include "feature_store.hpp"
 #include "policy_config.hpp"
+#include "store_config.hpp"
 #include <vector>
 #include <set>
 #include <unordered_map>
@@ -11,6 +12,7 @@
 #include <iostream>
 #include <functional>
 #include <sstream>
+#include <memory>
 
 namespace vulcan {
 
@@ -46,11 +48,12 @@ private:
 
 class rank_policy {
 public:
-    rank_policy(const feature_registry& registry, const rank_config& config)
-        : registry_(registry), feature_store_(registry, config), config_(config) {}
+    rank_policy(const feature_registry& registry, const rank_config& config,
+                std::shared_ptr<feature_store> store)
+        : registry_(registry), store_(std::move(store)), config_(config) {}
 
-    feature_store& get_feature_store() { return feature_store_; }
-    const feature_store& get_feature_store() const { return feature_store_; }
+    feature_store& get_feature_store() { return *store_; }
+    const feature_store& get_feature_store() const { return *store_; }
 
     void add_object(int64_t obj_id) {
         if (object_indices_.find(obj_id) == object_indices_.end()) {
@@ -64,10 +67,10 @@ public:
         if (it != object_indices_.end()) {
             size_t idx = it->second;
             int64_t last_obj = object_vector_.back();
-            
+
             object_vector_[idx] = last_obj;
             object_indices_[last_obj] = idx;
-            
+
             object_vector_.pop_back();
             object_indices_.erase(it);
         }
@@ -104,14 +107,13 @@ public:
         // Score Phase
         scores.reserve(candidates.size());
         for (int64_t id : candidates) {
-            // Context is now passed explicitly to the scorer function
-            double score = scorer(feature_store_, id);
+            double score = scorer(*store_, id);
             scores.push_back({id, score});
         }
 
         // Sort using comparator
         std::sort(scores.begin(), scores.end(), [&](const auto& a, const auto& b) {
-            return comp(a.second, b.second); 
+            return comp(a.second, b.second);
         });
         return scores;
     }
@@ -126,7 +128,6 @@ public:
         std::ostringstream ss;
         ss << "=== VULCAN RANK POLICY ===\n\n";
 
-        // User-provided context — first
         const auto& info = config_.get_information();
         if (!info.empty()) {
             ss << "--- Context ---\n";
@@ -135,12 +136,9 @@ public:
 
         ss << "--- Features ---\n";
         ss << "You can create this scoring function using the features we have listed below. Some features (i.e. global features) encode information about the system as a whole; other features (i.e. per-object) give you information about every object. You are allowed to use any subset of these features (or all of them) in your scoring function. Be creative!\n\n";
-        
-        // ss << "You also choose how candidates are enumerated before scoring. FullSort scores all N objects — most accurate. SampleSort scores a random subset — lower latency at the cost of some accuracy.\n\n";
 
         const auto& features = registry_.get_features();
 
-        // Partition features by scope
         std::vector<const feature_desc*> global_features, object_features;
         for (const auto& f : features) {
             if (f.scope == feature_desc::scope_type::global)
@@ -149,7 +147,6 @@ public:
                 object_features.push_back(&f);
         }
 
-        // Global features
         if (!global_features.empty()) {
             ss << "Global Features:\n";
             for (const auto* f : global_features) {
@@ -160,7 +157,6 @@ public:
             ss << "\n";
         }
 
-        // Object features
         if (!object_features.empty()) {
             ss << "Per-Object Features:\n";
             for (const auto* f : object_features) {
@@ -171,9 +167,8 @@ public:
             ss << "\n";
         }
 
-        // Listeners — explained once, both scopes listed together
         ss << "--- Listeners ---\n";
-        ss << "To use a feature in your scoring function, you must attach one or more **listeners** to it. Listeners collect and process data for a feature, exposing **query functions** (e.g. rolling averages, min/max, percentiles) that you call from inside your scoring function. By default, no listeners are attached to any feature, meaning no data is collected. Calling a query without attaching the corresponding listener causes a runtime error. Global features take global listeners; per-object features take object listeners. Attach with: config.add_listeners(handle, {listener1, listener2, ...});\n\n";
+        ss << "To use a feature in your scoring function, you must attach one or more **listeners** to it. Listeners collect and process data for a feature, exposing **query functions** (e.g. rolling averages, min/max, percentiles) that you call from inside your scoring function. By default, no listeners are attached to any feature, meaning no data is collected. Calling a query without attaching the corresponding listener causes a runtime error. Global features take global listeners; per-object features take object listeners. Attach with: store_cfg.add_listeners(handle, {listener1, listener2, ...});\n\n";
         ss << "Listeners that can be attached to global features:\n";
         for (const auto& doc : feature_registry::get_available_listeners(feature_desc::scope_type::global)) {
             ss << "  " << doc << "\n";
@@ -185,11 +180,10 @@ public:
         }
         ss << "\n";
 
-        // Expected output
         ss << "--- Expected Output ---\n";
         ss << "1. Listener configuration — attach listeners to each feature you want to use.\n";
-        ss << "     config.add_listeners(handle, {vulcan::listeners::object::RollingWindow(5)});\n";
-        ss << "     config.add_listeners(handle, {vulcan::listeners::global::RollingPercentile(100)});\n\n";
+        ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::object::RollingWindow(5)});\n";
+        ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::global::RollingPercentile(100)});\n\n";
         ss << "2. Scoring function — this IS your heuristic. Called once per candidate, returns a scalar. Vulcan ranks all candidates by this score and selects the winner via your comparator.\n";
         ss << "     auto fn = [&](const vulcan::feature_store& fs, int64_t obj_id) -> double {\n";
         ss << "         // per-object: fs.get_latest(handle, obj_id), fs.get_avg(handle, obj_id), ...\n";
@@ -207,7 +201,7 @@ public:
 
 private:
     const feature_registry& registry_;
-    feature_store feature_store_; 
+    std::shared_ptr<feature_store> store_;
     rank_config config_;
     std::vector<int64_t> object_vector_;
     std::unordered_map<int64_t, size_t> object_indices_;
@@ -233,8 +227,9 @@ private:
     }
 };
 
-inline rank_policy instantiate_rank_policy(const feature_registry& registry, const rank_config& config) {
-    return rank_policy(registry, config);
+inline rank_policy instantiate_rank_policy(const feature_registry& registry, const rank_config& config,
+                                           std::shared_ptr<feature_store> store) {
+    return rank_policy(registry, config, std::move(store));
 }
 
 inline int64_t decision(rank_policy& r) {

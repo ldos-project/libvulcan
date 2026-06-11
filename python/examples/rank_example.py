@@ -1,7 +1,7 @@
 """Python-side scaffolding for the rank example.
 
-Mirrors libvulcan/rank_example.cpp, but the EVOLVE block lives in
-rank_policy.cpp (compiled to rank_policy.so) and is loaded at runtime.
+Mirrors libvulcan/rank_example.cpp. The EVOLVE block is compiled from
+rank_policy.cpp and loaded at runtime.
 """
 import os
 import vulcan
@@ -24,7 +24,6 @@ def get_ssd_temp(ssd_id: int, t: int) -> int:
 def main() -> None:
     reg = vulcan.FeatureRegistry()
 
-    # Scaffolding: declare all features the policy is allowed to use.
     reg.global_features.declare_f64("system_load", "Current system load average")
     reg.global_features.declare_f64("cpu_usage", "CPU usage %")
     latency = reg.object_features.declare_f64("latency", "Avg latency (ms)")
@@ -34,6 +33,9 @@ def main() -> None:
     )
     system_load = reg.global_features.lookup_f64("system_load")
 
+    plugin = vulcan.load_policy(POLICY_SO)
+
+    store_cfg = vulcan.StoreConfig()
     cfg = vulcan.RankConfig()
     cfg.set_information(
         "You are building a policy to dispatch I/O requests to SSDs. "
@@ -42,19 +44,16 @@ def main() -> None:
         "features such as latency and temps for each SSD as well as some system-wide "
         "features like load, cpu_usage, and which SSDs were chosen for previous requests."
     )
+    plugin.configure_rank(reg, store_cfg, cfg)
 
-    # Load the compiled LLM-authored EVOLVE block and let it configure the policy.
-    plugin = vulcan.load_policy(POLICY_SO)
-    plugin.configure_rank(reg, cfg)
-
-    policy = vulcan.instantiate_rank_policy(reg, cfg)
+    store = vulcan.make_shared_feature_store(reg, store_cfg)
+    policy = vulcan.instantiate_rank_policy(reg, cfg, store)
     print(policy.get_prompt())
 
     drives = {1: "/dev/sda", 2: "/dev/sdb"}
     for d in drives:
         policy.add_object(d)
 
-    store = policy.feature_store
     for t in range(5):
         for d in drives:
             store.update(latency, d, get_ssd_latency(d, t))

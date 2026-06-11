@@ -31,20 +31,22 @@ void dispatch_io(int t, int64_t best_id, void* request){
 
 int main() {
     vulcan::feature_registry registry;
-    
+
     // setup of global + per object features
     auto system_load = registry.global.declare_f64("system_load", "Current system load average");
     auto cpu_usage   = registry.global.declare_f64("cpu_usage", "CPU usage %");
     auto latency = registry.object.declare_f64("latency", "Avg latency (ms)");
     auto temp    = registry.object.declare_i64("temp", "Drive temperature (C)");
     auto prev_decisions = registry.global.declare_i64("prev_decisions", "SSDs chosen for previous decisions.");
-    
+
+    vulcan::store_config store_cfg;
     vulcan::rank_config config;
+
     // EVOLVE-BLOCK-START
-    config.add_listeners(system_load, {vulcan::listeners::global::RollingWindow(1), vulcan::listeners::global::RollingPercentile(100)});
-    config.add_listeners(latency, {vulcan::listeners::object::RollingWindow(5)});
-    config.add_listeners(temp, {vulcan::listeners::object::RollingWindow(5)});
-    config.add_listeners(prev_decisions, {vulcan::listeners::global::RollingWindow(1)});
+    store_cfg.add_listeners(system_load, {vulcan::listeners::global::RollingWindow(1), vulcan::listeners::global::RollingPercentile(100)});
+    store_cfg.add_listeners(latency, {vulcan::listeners::object::RollingWindow(5)});
+    store_cfg.add_listeners(temp, {vulcan::listeners::object::RollingWindow(5)});
+    store_cfg.add_listeners(prev_decisions, {vulcan::listeners::global::RollingWindow(1)});
     auto scoring_fn = [&](const vulcan::feature_store& fs, int64_t obj_id) -> double {
         double l = fs.get_latest(latency, obj_id);
         double t = fs.get_latest(temp, obj_id);
@@ -58,41 +60,37 @@ int main() {
     // EVOLVE-BLOCK-END
 
     config.set_information(
-        "You are building a policy to dispatch I/O requests to SSDs. " 
+        "You are building a policy to dispatch I/O requests to SSDs. "
         "Whenever you receive an I/O request, this policy will be invoked to decide "
         "which SSD would be the best one to route the request to. You will receive "
         "features such as latency and temps for each SSD as well as some system-wide"
         "features like load, cpu_usage, and which SSDs were chosen for previous requests"
     );
-    auto io_ssd_policy = vulcan::instantiate_rank_policy(registry, config);
+
+    auto store = vulcan::make_shared_feature_store(registry, store_cfg);
+    auto io_ssd_policy = vulcan::instantiate_rank_policy(registry, config, store);
     std::cout << "\n" << io_ssd_policy.get_prompt() << std::endl;
-    vulcan::feature_store& store = io_ssd_policy.get_feature_store();
-    
+
     std::unordered_map<int, std::string> drives = {
         {1, "/dev/sda"}, // starts good, gets bad
         {2, "/dev/sdb"}  // starts bad, gets good
     };
 
     for (const auto& d : drives) io_ssd_policy.add_object(d.first);
-    
+
     for (int t = 0; t < 5; ++t) {
-        // update metadata
         auto request = get_request();
         for(const auto& d : drives) {
-            if(config.has_listeners(latency)) store.update(latency, d.first, get_ssd_latency(d.first, t));
-            if(config.has_listeners(temp)) store.update(temp, d.first, get_ssd_temp(d.first, t));
+            if(store->has_listeners(latency)) store->update(latency, d.first, get_ssd_latency(d.first, t));
+            if(store->has_listeners(temp)) store->update(temp, d.first, get_ssd_temp(d.first, t));
         }
-        if(config.has_listeners(system_load)) store.update(system_load, get_system_load(t));
-        if(config.has_listeners(cpu_usage)) store.update(cpu_usage, get_cpu_usage(t));
+        if(store->has_listeners(system_load)) store->update(system_load, get_system_load(t));
+        if(store->has_listeners(cpu_usage)) store->update(cpu_usage, get_cpu_usage(t));
 
-        // get decision
         int64_t best_id = vulcan::decision(io_ssd_policy);
-        
-        // add decision to feature store
-        if(config.has_listeners(prev_decisions)) store.update(prev_decisions, best_id);
-        
 
-        // implement the decision: use the best_id to send your I/O request to the best drive
+        if(store->has_listeners(prev_decisions)) store->update(prev_decisions, best_id);
+
         dispatch_io(t, best_id, request);
     }
     return 0;

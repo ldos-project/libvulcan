@@ -4,6 +4,8 @@
 benchmark_rank
 rank_example
 value_example
+value_rank_example
 build/
 
 stubs/
+.claude/

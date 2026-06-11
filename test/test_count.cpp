@@ -5,7 +5,7 @@
 int main() {
     vulcan_test::run_test("RollingCount - Global", []() {
         vulcan::feature_registry registry;
-        vulcan::rank_config config;
+        vulcan::store_config config;
 
         auto global_decisions = registry.global.declare_i64("recent_decisions", "Global Tracking");
         auto user_decisions   = registry.object.declare_i64("user_decisions", "Object Tracking");
@@ -39,8 +39,8 @@ int main() {
         vulcan::feature_registry registry;
         auto user_decisions   = registry.object.declare_i64("user_decisions", "Object Tracking");
 
-        vulcan::rank_config config;
-        
+        vulcan::store_config config;
+
         config.add_listeners(user_decisions, {vulcan::listeners::object::RollingCount(2)});
 
         auto fs = vulcan::instantiate_feature_store(registry, config);

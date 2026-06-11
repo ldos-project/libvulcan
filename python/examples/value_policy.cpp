@@ -4,15 +4,14 @@
 #include <algorithm>
 
 extern "C" void vulcan_configure_value(vulcan::feature_registry& registry,
+                                       vulcan::store_config& store_cfg,
                                        vulcan::value_config& config) {
     auto rtt       = registry.global.lookup_f64("rtt");
     auto queue_len = registry.global.lookup_i64("queue_len");
 
     // EVOLVE-BLOCK-START
-    config.add_listeners(rtt,       {vulcan::listeners::global::RollingWindow(5),
-                                     vulcan::listeners::global::MinMax()});
-    config.add_listeners(queue_len, {vulcan::listeners::global::RollingWindow(5),
-                                     vulcan::listeners::global::MinMax()});
+    store_cfg.add_listeners(rtt,       {vulcan::listeners::global::RollingWindow(5), vulcan::listeners::global::MinMax()});
+    store_cfg.add_listeners(queue_len, {vulcan::listeners::global::RollingWindow(5), vulcan::listeners::global::MinMax()});
 
     config.set_value_fn([rtt, queue_len](const vulcan::feature_store& fs) -> double {
         double  rtt_max = fs.get_max(rtt);

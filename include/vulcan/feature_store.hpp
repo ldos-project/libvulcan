@@ -2,7 +2,7 @@
 
 #include "feature.hpp"
 #include "feature_registry.hpp"
-#include "policy_config.hpp"
+#include "store_config.hpp"
 #include "listeners.hpp"
 #include "vulcan/listeners/global/average.hpp"
 #include "vulcan/listeners/global/min_max.hpp"
@@ -31,7 +31,7 @@ namespace vulcan {
 
 class feature_store {
 public:
-    explicit feature_store(const feature_registry& registry, const policy_config& config);
+    explicit feature_store(const feature_registry& registry, const store_config& config);
     virtual ~feature_store();
 
     // Prevent copying
@@ -42,13 +42,26 @@ public:
     feature_store(feature_store&& other) noexcept;
     feature_store& operator=(feature_store&&) = delete;
 
+    template <typename T>
+    bool has_listeners(feature_handle<T> h) const {
+        if (h.id >= 0 && h.id < static_cast<int>(global_store_vec.size()) &&
+            global_store_vec[h.id].type != feature_type::unknown) {
+            return !global_store_vec[h.id].listeners.empty();
+        }
+        if (h.id >= 0 && h.id < static_cast<int>(object_store_vec.size()) &&
+            object_store_vec[h.id].type != feature_type::unknown) {
+            return !object_store_vec[h.id].listeners.empty();
+        }
+        return false;
+    }
+
     // Update methods
     void update(feature_handle<double> h, double val);
     void update(feature_handle<int64_t> h, int64_t val);
     void update(feature_handle<double> h, int64_t obj_id, double val);
     void update(feature_handle<int64_t> h, int64_t obj_id, int64_t val);
 
-    // Percentile 
+    // Percentile
     template <typename T>
     double get_percentile(feature_handle<T> h, double p) const {
         if (h.id >= 0 && h.id < global_store_vec.size() && global_store_vec[h.id].type != feature_type::unknown) {
@@ -66,7 +79,7 @@ public:
         return listener->get_percentile(obj_id, p);
     }
 
-    // MinMax 
+    // MinMax
     template <typename T>
     T get_max(feature_handle<T> h) const {
         auto* listener = get_global_listener<GlobalMinMaxRuntime>(h.id);
@@ -98,7 +111,6 @@ public:
                 auto* listener = get_global_listener<GlobalAverageRuntime>(h.id);
                 return listener->get_avg();
             } catch (...) {
-                // Try rolling window if average not found
                 auto* listener = get_global_listener<GlobalRollingWindowRuntime>(h.id);
                 return listener->get_avg();
             }
@@ -113,7 +125,6 @@ public:
             auto* listener = get_object_listener<ObjectAverageRuntime>(h.id);
             return listener->get_avg(obj_id);
         } catch (...) {
-            // Try rolling window if average not found
             auto* listener = get_object_listener<ObjectRollingWindowRuntime>(h.id);
             return listener->get_avg(obj_id);
         }
@@ -131,7 +142,7 @@ public:
         return listener->get(obj_id, alpha);
     }
 
-    // Rolling Window 
+    // Rolling Window
     template <typename T>
     T get_latest(feature_handle<T> h) const {
         auto* listener = get_global_listener<GlobalRollingWindowRuntime>(h.id);
@@ -194,14 +205,14 @@ public:
 private:
     const feature_registry& registry_;
     std::vector<global_feature_data> global_store_vec;
-    std::vector<object_feature_data> object_store_vec; 
+    std::vector<object_feature_data> object_store_vec;
 
     template <typename ListenerType>
     const ListenerType* get_global_listener(int id) const {
         if (id < 0 || id >= static_cast<int>(global_store_vec.size()) || global_store_vec[id].type == feature_type::unknown) {
              throw std::runtime_error("Global feature not found in store: id=" + std::to_string(id));
         }
-        
+
         const auto& data = global_store_vec[id];
 
         RuntimeListener::Type target_type = ListenerType::static_type();
@@ -233,8 +244,9 @@ private:
     }
 };
 
-// Global factory
-feature_store instantiate_feature_store(const feature_registry& registry, const policy_config& config);
+// Factories
+feature_store instantiate_feature_store(const feature_registry& registry, const store_config& config);
+std::shared_ptr<feature_store> make_shared_feature_store(const feature_registry& registry, const store_config& config);
 
 // global listeners
 static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::Average&) { return std::make_unique<GlobalAverageRuntime>(); }

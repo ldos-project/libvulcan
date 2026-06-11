@@ -6,13 +6,16 @@ CXXFLAGS = -std=c++20 -I./include
 LIB_SRCS = src/vulcan.cpp src/feature_registry.cpp src/feature_store.cpp
 LIB_OBJS = $(LIB_SRCS:.cpp=.o)
 
-all: value_example rank_example benchmark_rank
+all: value_example rank_example value_rank_example benchmark_rank
 
 value_example: value_example.cpp $(LIB_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ value_example.cpp $(LIB_OBJS)
 
 rank_example: rank_example.cpp $(LIB_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ rank_example.cpp $(LIB_OBJS)
+
+value_rank_example: value_rank_example.cpp $(LIB_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ value_rank_example.cpp $(LIB_OBJS)
 
 benchmark_rank: benchmark/rank.cpp $(LIB_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ benchmark/rank.cpp $(LIB_OBJS)
@@ -53,4 +56,4 @@ src/%.o: src/%.cpp
 
 clean:
 	find . -name "*.o" -delete
-	rm -rfv value_example rank_example benchmark_rank
+	rm -rfv value_example rank_example value_rank_example benchmark_rank

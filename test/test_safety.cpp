@@ -12,7 +12,7 @@ public:
         var2 = registry.global.declare_i64("var2", "Test Int Variable");
     }
 
-    vulcan::feature_store create_store(const vulcan::policy_config& config) {
+    vulcan::feature_store create_store(const vulcan::store_config& config) {
         return vulcan::instantiate_feature_store(registry, config);
     }
 };
@@ -24,7 +24,7 @@ int main() {
 
         // var2 has NO listeners configured
         
-        vulcan::policy_config config;
+        vulcan::store_config config;
         auto features = fixture.create_store(config);
         
         auto risky_decision = [&](const vulcan::feature_store& fs) -> double {
@@ -42,7 +42,7 @@ int main() {
 
     vulcan_test::run_test("Duplicate Listener Enforcement", []() {
         TestFixture fixture;
-        vulcan::policy_config config;
+        vulcan::store_config config;
         config.add_listeners(fixture.var1, {
             vulcan::listeners::global::RollingCount(3),
             vulcan::listeners::global::RollingCount(5) // duplicate type
@@ -59,7 +59,7 @@ int main() {
 
     vulcan_test::run_test("i64 Boundary Values and Overflow", []() {
         TestFixture fixture;
-        vulcan::policy_config config;
+        vulcan::store_config config;
         
         config.add_listeners(fixture.var2, {
             vulcan::listeners::global::MinMax()
@@ -80,7 +80,7 @@ int main() {
 
     vulcan_test::run_test("i64 Overflow Isolation", []() {
         TestFixture fixture;
-        vulcan::policy_config config;
+        vulcan::store_config config;
         
         config.add_listeners(fixture.var2, {
             vulcan::listeners::global::MinMax()

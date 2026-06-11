@@ -30,12 +30,14 @@ int main(int argc, char* argv[]) {
     auto f_3 = registry.object.declare_f64("f_3", "Feature 3");
     auto f_4 = registry.object.declare_f64("f_4", "Feature 4");
 
+    vulcan::store_config store_cfg;
     vulcan::rank_config config;
+
     if (!disable_listeners) {
-        config.add_listeners(f_1, {vulcan::listeners::object::RollingWindow(1)});
-        config.add_listeners(f_2, {vulcan::listeners::object::RollingWindow(1)});
-        config.add_listeners(f_3, {vulcan::listeners::object::RollingWindow(1)});
-        config.add_listeners(f_4, {vulcan::listeners::object::RollingWindow(1)});
+        store_cfg.add_listeners(f_1, {vulcan::listeners::object::RollingWindow(1)});
+        store_cfg.add_listeners(f_2, {vulcan::listeners::object::RollingWindow(1)});
+        store_cfg.add_listeners(f_3, {vulcan::listeners::object::RollingWindow(1)});
+        store_cfg.add_listeners(f_4, {vulcan::listeners::object::RollingWindow(1)});
     }
 
     auto scoring_fn = [&](const vulcan::feature_store& fs, int64_t obj_id) -> double {
@@ -44,14 +46,15 @@ int main(int argc, char* argv[]) {
         }
         double val_4 = fs.get_latest(f_4, obj_id);
         double val_3 = fs.get_latest(f_3, obj_id);
-        return val_4 + val_3; // Simple priority
+        return val_4 + val_3;
     };
 
     config.set_sorting_function(vulcan::rank::SampleSort);
     config.set_scoring_fn(scoring_fn);
-    config.set_comparator(vulcan::min); // Evict lowest score
+    config.set_comparator(vulcan::min);
 
-    auto policy = std::make_unique<vulcan::rank_policy>(vulcan::instantiate_rank_policy(registry, config));
+    auto store = vulcan::make_shared_feature_store(registry, store_cfg);
+    auto policy = std::make_unique<vulcan::rank_policy>(vulcan::instantiate_rank_policy(registry, config, store));
 
     std::mt19937 rng(42);
     std::uniform_int_distribution<int> obj_dist(1, TOTAL_OBJECTS * 2);
@@ -74,10 +77,10 @@ int main(int argc, char* argv[]) {
         }
 
         policy->add_object(obj_id);
-        policy->get_feature_store().update(f_1, obj_id, lat_dist(rng));
-        policy->get_feature_store().update(f_2, obj_id, size_dist(rng));
-        policy->get_feature_store().update(f_3, obj_id, static_cast<double>(i));
-        policy->get_feature_store().update(f_4, obj_id, 1.0);
+        store->update(f_1, obj_id, lat_dist(rng));
+        store->update(f_2, obj_id, size_dist(rng));
+        store->update(f_3, obj_id, static_cast<double>(i));
+        store->update(f_4, obj_id, 1.0);
 
         num_objects++;
     }

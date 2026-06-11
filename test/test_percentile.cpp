@@ -10,7 +10,7 @@ bool approx(double a, double b, double eps = 0.001) {
 
 int main() {
     vulcan::feature_registry registry;
-    vulcan::policy_config config;
+    vulcan::store_config config;
     
     // 1. Global Feature with Percentile History
     auto global_feat = registry.global.declare_f64("g_load", "Global Load");

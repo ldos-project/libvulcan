@@ -3,7 +3,7 @@
 #include <limits>
 #include <stdexcept>
 #include <variant>
-#include "vulcan.h" 
+#include "vulcan.h"
 
 namespace vulcan {
 
@@ -33,7 +33,7 @@ static void init_object_listeners(feature_store::object_feature_data& data, cons
     }
 }
 
-feature_store::feature_store(const feature_registry& reg, const policy_config& config) : registry_(reg) {    
+feature_store::feature_store(const feature_registry& reg, const store_config& config) : registry_(reg) {
     const auto& user_listeners = config.get_listeners();
     for (const auto& desc : registry_.get_features()) {
         auto it = user_listeners.find(desc.id);
@@ -43,7 +43,6 @@ feature_store::feature_store(const feature_registry& reg, const policy_config& c
                 auto& data = global_store_vec[desc.id];
                 init_global_listeners(data, desc, it->second);
             } else if (desc.scope == feature_desc::scope_type::object) {
-                // Pre-create the listener containers for object features
                 if (desc.id >= (int64_t) object_store_vec.size()) object_store_vec.resize(desc.id + 1);
                 auto& data = object_store_vec[desc.id];
                 init_object_listeners(data, desc, it->second);
@@ -52,8 +51,8 @@ feature_store::feature_store(const feature_registry& reg, const policy_config& c
     }
 }
 
-feature_store::feature_store(feature_store&& other) noexcept 
-    : registry_(other.registry_), 
+feature_store::feature_store(feature_store&& other) noexcept
+    : registry_(other.registry_),
       global_store_vec(std::move(other.global_store_vec)),
       object_store_vec(std::move(other.object_store_vec)) {
 }
@@ -93,9 +92,12 @@ void feature_store::update(feature_handle<int64_t> h, int64_t obj_id, int64_t va
     }
 }
 
-// Global factory
-feature_store instantiate_feature_store(const feature_registry& registry, const policy_config& config) {
+feature_store instantiate_feature_store(const feature_registry& registry, const store_config& config) {
     return feature_store(registry, config);
+}
+
+std::shared_ptr<feature_store> make_shared_feature_store(const feature_registry& registry, const store_config& config) {
+    return std::make_shared<feature_store>(registry, config);
 }
 
 }

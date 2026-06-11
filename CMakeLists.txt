@@ -66,3 +66,11 @@ set_target_properties(value_policy_example PROPERTIES
     OUTPUT_NAME "value_policy"
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/python/examples
 )
+
+add_library(value_rank_policy_example SHARED python/examples/value_rank_policy.cpp)
+target_link_libraries(value_rank_policy_example PRIVATE vulcan)
+set_target_properties(value_rank_policy_example PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "value_rank_policy"
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/python/examples
+)

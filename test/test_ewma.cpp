@@ -5,7 +5,7 @@
 int main() {
     vulcan_test::run_test("EWMA - Global initialization", []() {
         vulcan::feature_registry registry;
-        vulcan::policy_config config;
+        vulcan::store_config config;
         auto var = registry.global.declare_f64("g_val", "Global value");
         config.add_listeners(var, {vulcan::listeners::global::EWMA({0.1, 0.5})});
         auto fs = vulcan::instantiate_feature_store(registry, config);
@@ -18,7 +18,7 @@ int main() {
 
     vulcan_test::run_test("EWMA - Global multi-alpha correctness", []() {
         vulcan::feature_registry registry;
-        vulcan::policy_config config;
+        vulcan::store_config config;
         auto var = registry.global.declare_f64("g_val", "Global value");
         config.add_listeners(var, {vulcan::listeners::global::EWMA({0.1, 0.5})});
         auto fs = vulcan::instantiate_feature_store(registry, config);
@@ -40,7 +40,7 @@ int main() {
 
     vulcan_test::run_test("EWMA - Global int64_t update path", []() {
         vulcan::feature_registry registry;
-        vulcan::policy_config config;
+        vulcan::store_config config;
         auto var = registry.global.declare_i64("g_int", "Global int");
         config.add_listeners(var, {vulcan::listeners::global::EWMA({0.5})});
         auto fs = vulcan::instantiate_feature_store(registry, config);
@@ -53,7 +53,7 @@ int main() {
 
     vulcan_test::run_test("EWMA - Object initialization and isolation", []() {
         vulcan::feature_registry registry;
-        vulcan::policy_config config;
+        vulcan::store_config config;
         auto var = registry.object.declare_f64("obj_val", "Per-object value");
         config.add_listeners(var, {vulcan::listeners::object::EWMA({0.2, 0.8})});
         auto fs = vulcan::instantiate_feature_store(registry, config);
@@ -74,7 +74,7 @@ int main() {
 
     vulcan_test::run_test("EWMA - Object multi-alpha correctness", []() {
         vulcan::feature_registry registry;
-        vulcan::policy_config config;
+        vulcan::store_config config;
         auto var = registry.object.declare_f64("obj_val", "Per-object value");
         config.add_listeners(var, {vulcan::listeners::object::EWMA({0.2, 0.8})});
         auto fs = vulcan::instantiate_feature_store(registry, config);
@@ -99,7 +99,7 @@ int main() {
 
     vulcan_test::run_test("EWMA - Object int64_t update path", []() {
         vulcan::feature_registry registry;
-        vulcan::policy_config config;
+        vulcan::store_config config;
         auto var = registry.object.declare_i64("obj_int", "Per-object int");
         config.add_listeners(var, {vulcan::listeners::object::EWMA({0.5})});
         auto fs = vulcan::instantiate_feature_store(registry, config);
