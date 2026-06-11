@@ -1,0 +1,9 @@
+# object files
+*.o
+*.so
+benchmark_rank
+rank_example
+value_example
+build/
+
+stubs/
