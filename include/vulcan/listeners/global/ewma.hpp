@@ -32,6 +32,11 @@ public:
         return it->second;
     }
 
+    double get() const {
+        if (ewmas.size() != 1) throw std::runtime_error("get_ewma without alpha requires exactly one alpha configured");
+        return ewmas.begin()->second;
+    }
+
 private:
     bool initialized = false;
     std::unordered_map<double, double> ewmas;

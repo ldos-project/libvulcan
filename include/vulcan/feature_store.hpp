@@ -17,6 +17,7 @@
 #include "vulcan/listeners/object/rolling_count.hpp"
 #include "vulcan/listeners/object/population_percentile.hpp"
 #include "vulcan/listeners/object/ewma.hpp"
+#include <iostream>
 #include <vector>
 #include <deque>
 #include <limits>
@@ -120,9 +121,39 @@ public:
     }
 
     template <typename T>
-    double get_ewma(feature_handle<T> h, double alpha) const {
+    double get_ewma(feature_handle<T> h) const {
         auto* listener = get_global_listener<GlobalEWMARuntime>(h.id);
-        return listener->get(alpha);
+        return listener->get();
+    }
+
+    template <typename T>
+    double get_ewma(feature_handle<T> h, int64_t obj_id) const {
+        if (h.id >= 0 && h.id < static_cast<int>(global_store_vec.size()) && global_store_vec[h.id].type != feature_type::unknown) {
+            // global: arg is alpha (lossy cast from int64_t — likely a bug)
+            std::cerr << "[WARN] get_ewma called with int64_t on global feature id=" << h.id
+                      << "; interpreting as alpha (cast from int64_t)\n";
+            auto* listener = get_global_listener<GlobalEWMARuntime>(h.id);
+            return listener->get(static_cast<double>(obj_id));
+        } else {
+            // object: arg is obj_id, uses single configured alpha
+            auto* listener = get_object_listener<ObjectEWMARuntime>(h.id);
+            return listener->get(obj_id);
+        }
+    }
+
+    template <typename T>
+    double get_ewma(feature_handle<T> h, double alpha) const {
+        if (h.id >= 0 && h.id < static_cast<int>(global_store_vec.size()) && global_store_vec[h.id].type != feature_type::unknown) {
+            // global: arg is alpha
+            auto* listener = get_global_listener<GlobalEWMARuntime>(h.id);
+            return listener->get(alpha);
+        } else {
+            // object: arg is obj_id (truncated from double), uses single configured alpha
+            std::cerr << "[WARN] get_ewma called with double on object feature id=" << h.id
+                      << "; interpreting as obj_id (lossy cast from double)\n";
+            auto* listener = get_object_listener<ObjectEWMARuntime>(h.id);
+            return listener->get(static_cast<int64_t>(alpha));
+        }
     }
 
     template <typename T>

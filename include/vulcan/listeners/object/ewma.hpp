@@ -32,6 +32,11 @@ public:
         return eit->second;
     }
 
+    double get(int64_t obj_id) const {
+        if (alphas.size() != 1) throw std::runtime_error("get_ewma without alpha requires exactly one alpha configured");
+        return get(obj_id, alphas[0]);
+    }
+
 private:
     static double round_alpha(double a) { return std::round(a * 1000.0) / 1000.0; }
 

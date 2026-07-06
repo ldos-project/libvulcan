@@ -86,6 +86,7 @@ struct RollingCount {
 
 struct EWMA {
     std::vector<double> alphas;
+    EWMA(double a) : alphas{a} {}
     EWMA(std::initializer_list<double> a) : alphas(a) {}
     static std::string name() { return "global::EWMA"; }
     static constexpr bool supports_global = true;
