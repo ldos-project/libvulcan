@@ -5,7 +5,7 @@
 
 namespace vulcan {
 
-class ObjectAverageRuntime : public ObjectRuntimeListener {
+class ObjectAverageRuntime : public RuntimeListener {
 public:
     ObjectAverageRuntime() {}
 

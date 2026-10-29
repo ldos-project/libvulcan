@@ -6,7 +6,7 @@
 
 namespace vulcan {
 
-class ObjectRollingWindowRuntime : public ObjectRuntimeListener {
+class ObjectRollingWindowRuntime : public RuntimeListener {
 public:
     ObjectRollingWindowRuntime(int w) : window(w) {}
 
@@ -55,10 +55,18 @@ public:
 
     double get_avg(int64_t obj_id) const {
         auto it = stats.find(obj_id);
-        if (it == stats.end() || it->second.count == 0) return 0.0;
+        if (it == stats.end()) return 0.0;
+        const auto& ws = it->second;
         double sum = 0.0;
-        for (double v : it->second.history_f64) sum += v;
-        return sum / it->second.count;
+        if (ws.count > 0) {
+            for (double v : ws.history_f64) sum += v;
+            return sum / ws.count;
+        }
+        if (ws.count_i64 > 0) {
+            for (int64_t v : ws.history_i64) sum += static_cast<double>(v);
+            return sum / ws.count_i64;
+        }
+        return 0.0;
     }
 
 private:

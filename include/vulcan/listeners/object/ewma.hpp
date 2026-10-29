@@ -1,15 +1,17 @@
 #pragma once
 
 #include "vulcan/runtime_listener.hpp"
+#include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <stdexcept>
 #include <initializer_list>
 #include <unordered_map>
 #include <vector>
 
 namespace vulcan {
 
-class ObjectEWMARuntime : public ObjectRuntimeListener {
+class ObjectEWMARuntime : public RuntimeListener {
 public:
     ObjectEWMARuntime(std::initializer_list<double> alphas) {
         for (double a : alphas) this->alphas.push_back(round_alpha(a));
@@ -26,7 +28,11 @@ public:
 
     double get(int64_t obj_id, double alpha) const {
         auto it = stats.find(obj_id);
-        if (it == stats.end()) return 0.0;
+        if (it == stats.end()) {
+            if (std::find(alphas.begin(), alphas.end(), round_alpha(alpha)) == alphas.end())
+                throw std::runtime_error("EWMA alpha not found");
+            return 0.0;
+        }
         auto eit = it->second.ewmas.find(round_alpha(alpha));
         if (eit == it->second.ewmas.end()) throw std::runtime_error("EWMA alpha not found");
         return eit->second;

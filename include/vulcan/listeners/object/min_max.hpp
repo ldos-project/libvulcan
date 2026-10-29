@@ -7,7 +7,7 @@
 
 namespace vulcan {
 
-class ObjectMinMaxRuntime : public ObjectRuntimeListener {
+class ObjectMinMaxRuntime : public RuntimeListener {
 public:
     ObjectMinMaxRuntime() {}
 

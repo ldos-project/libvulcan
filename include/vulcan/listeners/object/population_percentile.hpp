@@ -6,7 +6,7 @@
 
 namespace vulcan {
 
-class ObjectPopulationPercentileRuntime : public ObjectRuntimeListener {
+class ObjectPopulationPercentileRuntime : public RuntimeListener {
 public:
     ObjectPopulationPercentileRuntime() {}
 

@@ -7,7 +7,7 @@
 
 namespace vulcan {
 
-class ObjectRollingCountRuntime : public ObjectRuntimeListener {
+class ObjectRollingCountRuntime : public RuntimeListener {
 public:
     ObjectRollingCountRuntime(int w) : window(w) {}
 
