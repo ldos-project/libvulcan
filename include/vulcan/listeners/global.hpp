@@ -75,7 +75,7 @@ struct RollingCount {
     static constexpr bool supports_object = false;
     static std::string describe() {
         return "vulcan::listeners::global::RollingCount(int window_size)\n"
-               "\t  Counts how many times each distinct integer value appeared in the last N updates; useful for tracking frequency or presence (e.g. how often a specific object was chosen).\n"
+               "\t  Counts how many times each distinct integer or bool value appeared in the last N updates; useful for tracking frequency or presence (e.g. how often a specific object was chosen).\n"
                "\t- fs.get_count(handle, int64_t val)\n"
                "\t- fs.contains(handle, int64_t val)";
     }

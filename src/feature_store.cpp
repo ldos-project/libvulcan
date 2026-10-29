@@ -40,6 +40,7 @@ feature_store::~feature_store() {
 
 void feature_store::update(feature_handle<double> h, double val) { update(h, global_key, val); }
 void feature_store::update(feature_handle<int64_t> h, int64_t val) { update(h, global_key, val); }
+void feature_store::update(feature_handle<bool> h, bool val) { update(h, global_key, val); }
 
 void feature_store::update(feature_handle<double> h, int64_t obj_id, double val) {
     if (h.id >= 0 && h.id < (int64_t) store_vec.size() && store_vec[h.id].type != feature_type::unknown) {
@@ -53,6 +54,15 @@ void feature_store::update(feature_handle<int64_t> h, int64_t obj_id, int64_t va
     if (h.id >= 0 && h.id < (int64_t) store_vec.size() && store_vec[h.id].type != feature_type::unknown) {
         for (auto& listener : store_vec[h.id].listeners) {
             listener->on_update(obj_id, val);
+        }
+    }
+}
+
+// Listeners receive a bool as the integer 0 or 1; typed listeners cast it back.
+void feature_store::update(feature_handle<bool> h, int64_t obj_id, bool val) {
+    if (h.id >= 0 && h.id < (int64_t) store_vec.size() && store_vec[h.id].type != feature_type::unknown) {
+        for (auto& listener : store_vec[h.id].listeners) {
+            listener->on_update(obj_id, static_cast<int64_t>(val));
         }
     }
 }

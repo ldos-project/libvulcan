@@ -13,6 +13,7 @@ class feature_registry;
 enum class feature_type {
     f64, 
     i64,
+    boolean,
     unknown
 };
 
@@ -21,6 +22,7 @@ enum class feature_type {
 template <typename T> struct feature_type_of;
 template <> struct feature_type_of<double>  { static constexpr feature_type value = feature_type::f64; };
 template <> struct feature_type_of<int64_t> { static constexpr feature_type value = feature_type::i64; };
+template <> struct feature_type_of<bool>    { static constexpr feature_type value = feature_type::boolean; };
 
 // Generic feature handle
 template <typename T>

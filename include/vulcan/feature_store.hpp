@@ -48,8 +48,10 @@ public:
     // Update methods
     void update(feature_handle<double> h, double val);
     void update(feature_handle<int64_t> h, int64_t val);
+    void update(feature_handle<bool> h, bool val);
     void update(feature_handle<double> h, int64_t obj_id, double val);
     void update(feature_handle<int64_t> h, int64_t obj_id, int64_t val);
+    void update(feature_handle<bool> h, int64_t obj_id, bool val);
 
     // Temporal percentile: over a feature's recent values (RollingPercentile)
     template <typename T>
@@ -127,19 +129,22 @@ public:
         return get_listener<RollingWindowRuntime<T>>(h.id)->get_kth(obj_id, k);
     }
 
-    // Rolling Count
-    int get_count(feature_handle<int64_t> h, int64_t val) const { return get_count(h, global_key, val); }
+    // Rolling Count (int64_t or bool features). The value argument is type_identity_t<T> so that T is taken
+    // from the handle alone, and a literal like 5 converts to the feature's type instead of conflicting with it.
+    template <typename T>
+    int get_count(feature_handle<T> h, std::type_identity_t<T> val) const { return get_count(h, global_key, val); }
 
-    int get_count(feature_handle<int64_t> h, int64_t obj_id, int64_t val) const {
-        auto* listener = get_listener<RollingCountRuntime<int64_t>>(h.id);
-        return listener->get_count(obj_id, val);
+    template <typename T>
+    int get_count(feature_handle<T> h, int64_t obj_id, std::type_identity_t<T> val) const {
+        return get_listener<RollingCountRuntime<T>>(h.id)->get_count(obj_id, val);
     }
 
-    bool contains(feature_handle<int64_t> h, int64_t val) const { return contains(h, global_key, val); }
+    template <typename T>
+    bool contains(feature_handle<T> h, std::type_identity_t<T> val) const { return contains(h, global_key, val); }
 
-    bool contains(feature_handle<int64_t> h, int64_t obj_id, int64_t val) const {
-        auto* listener = get_listener<RollingCountRuntime<int64_t>>(h.id);
-        return listener->contains(obj_id, val);
+    template <typename T>
+    bool contains(feature_handle<T> h, int64_t obj_id, std::type_identity_t<T> val) const {
+        return get_listener<RollingCountRuntime<T>>(h.id)->contains(obj_id, val);
     }
 
     struct feature_data {
@@ -179,29 +184,37 @@ std::shared_ptr<feature_store> make_shared_feature_store(const feature_registry&
 // typed listeners: the value type comes from the feature's declaration
 static std::unique_ptr<RuntimeListener> make_rolling_window(int window, feature_type t) {
     if (t == feature_type::f64) return std::make_unique<RollingWindowRuntime<double>>(window);
+    if (t == feature_type::boolean) return std::make_unique<RollingWindowRuntime<bool>>(window);
     return std::make_unique<RollingWindowRuntime<int64_t>>(window);
 }
 
 static std::unique_ptr<RuntimeListener> make_rolling_count(int window, feature_type t) {
-    if (t != feature_type::i64) throw std::invalid_argument("RollingCount listener only supports integer features.");
+    if (t == feature_type::boolean) return std::make_unique<RollingCountRuntime<bool>>(window);
+    if (t != feature_type::i64) throw std::invalid_argument("RollingCount listener only supports integer and bool features.");
     return std::make_unique<RollingCountRuntime<int64_t>>(window);
+}
+
+// Order statistics are not meaningful on a flag; RollingCount gives the same information.
+static void reject_on_bool(feature_type t, const char* listener) {
+    if (t == feature_type::boolean)
+        throw std::invalid_argument(std::string(listener) + " listener does not support bool features; use RollingCount.");
 }
 
 // global listeners
 static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::Average&, feature_type) { return std::make_unique<AverageRuntime>(); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::MinMax&, feature_type) { return std::make_unique<MinMaxRuntime>(); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::MinMax&, feature_type t) { reject_on_bool(t, "MinMax"); return std::make_unique<MinMaxRuntime>(); }
 static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::RollingWindow& c, feature_type t) { return make_rolling_window(c.window, t); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::RollingPercentile& c, feature_type) { return std::make_unique<RollingPercentileRuntime>(c.window);}
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::RollingPercentile& c, feature_type t) { reject_on_bool(t, "RollingPercentile"); return std::make_unique<RollingPercentileRuntime>(c.window); }
 static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::RollingCount& c, feature_type t) { return make_rolling_count(c.window, t); }
 static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::EWMA& c, feature_type) { return std::make_unique<EWMARuntime>(c.alphas);}
 
 // object listeners
 static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::Average&, feature_type) { return std::make_unique<AverageRuntime>();}
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::MinMax&, feature_type) { return std::make_unique<MinMaxRuntime>();}
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::MinMax&, feature_type t) { reject_on_bool(t, "MinMax"); return std::make_unique<MinMaxRuntime>(); }
 static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::RollingWindow& c, feature_type t) { return make_rolling_window(c.window, t); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::RollingPercentile& c, feature_type) { return std::make_unique<RollingPercentileRuntime>(c.window);}
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::RollingPercentile& c, feature_type t) { reject_on_bool(t, "RollingPercentile"); return std::make_unique<RollingPercentileRuntime>(c.window); }
 static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::RollingCount& c, feature_type t) { return make_rolling_count(c.window, t); }
 static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::EWMA& c, feature_type) { return std::make_unique<EWMARuntime>(c.alphas);}
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::PopulationPercentile&, feature_type) { return std::make_unique<PopulationPercentileRuntime>();}
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::PopulationPercentile&, feature_type t) { reject_on_bool(t, "PopulationPercentile"); return std::make_unique<PopulationPercentileRuntime>(); }
 
 }

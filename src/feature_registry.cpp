@@ -11,7 +11,7 @@ static const feature_desc* find_by_name(const std::vector<feature_desc>& feature
 }
 
 static const char* type_name(feature_type t) {
-    return t == feature_type::f64 ? "f64" : t == feature_type::i64 ? "i64" : "unknown";
+    return t == feature_type::f64 ? "f64" : t == feature_type::i64 ? "i64" : t == feature_type::boolean ? "bool" : "unknown";
 }
 static const char* scope_name(feature_desc::scope_type s) {
     return s == feature_desc::scope_type::global ? "global" : "object";
