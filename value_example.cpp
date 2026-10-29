@@ -33,7 +33,7 @@ int main() {
 
     store_cfg2.add_listeners(rtt, {vulcan::listeners::global::RollingPercentile(100)});
     auto flow2_cwnd_fn = [&](const vulcan::feature_store& fs) -> double {
-      return fs.get_temporal_percentile(rtt, 95);
+      return fs.get_temporal_percentile(rtt, 0.95);
     };
     config1.set_value_fn(flow1_cwnd_fn);
     config2.set_value_fn(flow2_cwnd_fn);
