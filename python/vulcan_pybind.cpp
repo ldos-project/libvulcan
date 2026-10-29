@@ -156,26 +156,35 @@ PYBIND11_MODULE(_vulcan, m) {
     m.def("make_shared_feature_store",
         [](const vulcan::feature_registry& reg, const vulcan::store_config& sc) {
             return vulcan::make_shared_feature_store(reg, sc);
-        }, py::arg("registry"), py::arg("store_config"));
+        }, py::arg("registry"), py::arg("store_config"),
+        py::keep_alive<0, 1>());   // the store refers to the registry
 
     m.def("instantiate_rank_policy",
         [](const vulcan::feature_registry& reg, const vulcan::rank_config& cfg,
            std::shared_ptr<vulcan::feature_store> store) {
             return std::make_unique<vulcan::rank_policy>(reg, cfg, std::move(store));
-        }, py::arg("registry"), py::arg("config"), py::arg("store"));
+        }, py::arg("registry"), py::arg("config"), py::arg("store"),
+        py::keep_alive<0, 1>(),    // the policy refers to the registry
+        py::keep_alive<0, 2>());   // the policy copies the config's functions, which may be plugin code
 
     m.def("instantiate_value_policy",
         [](const vulcan::feature_registry& reg, const vulcan::value_config& cfg,
            std::shared_ptr<vulcan::feature_store> store) {
             return std::make_unique<vulcan::value_policy>(reg, cfg, std::move(store));
-        }, py::arg("registry"), py::arg("config"), py::arg("store"));
+        }, py::arg("registry"), py::arg("config"), py::arg("store"),
+        py::keep_alive<0, 1>(),    // the policy refers to the registry
+        py::keep_alive<0, 2>());   // the policy copies the config's functions, which may be plugin code
 
     // ---- Policy plugin loader --------------------------------------------------
+    // The plugin sets functions on the config whose code lives in the plugin's library, so the config keeps
+    // the plugin (and through it the loaded library) alive.
     py::class_<PolicyPlugin>(m, "PolicyPlugin")
         .def("configure_rank", &PolicyPlugin::configure_rank,
-             py::arg("registry"), py::arg("store_config"), py::arg("config"))
+             py::arg("registry"), py::arg("store_config"), py::arg("config"),
+             py::keep_alive<4, 1>())
         .def("configure_value", &PolicyPlugin::configure_value,
-             py::arg("registry"), py::arg("store_config"), py::arg("config"));
+             py::arg("registry"), py::arg("store_config"), py::arg("config"),
+             py::keep_alive<4, 1>());
 
     m.def("load_policy", [](const std::string& path) {
         return std::make_unique<PolicyPlugin>(path);
