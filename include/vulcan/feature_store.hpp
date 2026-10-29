@@ -211,21 +211,12 @@ static std::unique_ptr<RuntimeListener> make_typed(feature_type t, const Args&..
     }
 }
 
-// global listeners
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::Average&, feature_type t) { return make_typed<AverageRuntime>(t); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::MinMax&, feature_type t) { return make_typed<MinMaxRuntime>(t); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::RollingWindow& c, feature_type t) { return make_typed<RollingWindowRuntime>(t, c.window); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::RollingPercentile& c, feature_type t) { return make_typed<RollingPercentileRuntime>(t, c.window); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::RollingCount& c, feature_type t) { return make_typed<RollingCountRuntime>(t, c.window); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::global::EWMA& c, feature_type t) { return make_typed<EWMARuntime>(t, c.alphas); }
-
-// object listeners
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::Average&, feature_type t) { return make_typed<AverageRuntime>(t); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::MinMax&, feature_type t) { return make_typed<MinMaxRuntime>(t); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::RollingWindow& c, feature_type t) { return make_typed<RollingWindowRuntime>(t, c.window); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::RollingPercentile& c, feature_type t) { return make_typed<RollingPercentileRuntime>(t, c.window); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::RollingCount& c, feature_type t) { return make_typed<RollingCountRuntime>(t, c.window); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::EWMA& c, feature_type t) { return make_typed<EWMARuntime>(t, c.alphas); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::object::PopulationPercentile&, feature_type t) { return make_typed<PopulationPercentileRuntime>(t); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::Average&, feature_type t) { return make_typed<AverageRuntime>(t); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::MinMax&, feature_type t) { return make_typed<MinMaxRuntime>(t); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::RollingWindow& c, feature_type t) { return make_typed<RollingWindowRuntime>(t, c.window); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::RollingPercentile& c, feature_type t) { return make_typed<RollingPercentileRuntime>(t, c.window); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::RollingCount& c, feature_type t) { return make_typed<RollingCountRuntime>(t, c.window); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::EWMA& c, feature_type t) { return make_typed<EWMARuntime>(t, c.alphas); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::PopulationPercentile&, feature_type t) { return make_typed<PopulationPercentileRuntime>(t); }
 
 }

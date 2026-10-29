@@ -15,17 +15,17 @@ int main() {
     // 1. Global Feature with Percentile History
     auto global_feat = registry.global.declare<double>("g_load", "Global Load");
     // Window of 100
-    config.add_listeners(global_feat, {vulcan::listeners::global::RollingPercentile(100)});
+    config.add_listeners(global_feat, {vulcan::listeners::RollingPercentile(100)});
 
     // 2. Object Feature with Population Distribution
     auto obj_feat = registry.object.declare<double>("o_temp", "Object Temp");
-    config.add_listeners(obj_feat, {vulcan::listeners::object::PopulationPercentile()});
+    config.add_listeners(obj_feat, {vulcan::listeners::PopulationPercentile()});
 
     // 3. Object Feature with Both Percentiles
     auto obj_combined_feat = registry.object.declare<double>("o_comb", "Object Combined");
     config.add_listeners(obj_combined_feat, {
-        vulcan::listeners::object::RollingPercentile(100),
-        vulcan::listeners::object::PopulationPercentile()
+        vulcan::listeners::RollingPercentile(100),
+        vulcan::listeners::PopulationPercentile()
     });
 
     auto store = vulcan::instantiate_feature_store(registry, config);

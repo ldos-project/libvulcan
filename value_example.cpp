@@ -22,8 +22,8 @@ int main() {
     vulcan::store_config store_cfg1, store_cfg2;
 
     // EVOLVE-BLOCK-START
-    store_cfg1.add_listeners(rtt, {vulcan::listeners::global::RollingWindow(5), vulcan::listeners::global::MinMax()});
-    store_cfg1.add_listeners(queue_len, {vulcan::listeners::global::RollingWindow(5), vulcan::listeners::global::MinMax()});
+    store_cfg1.add_listeners(rtt, {vulcan::listeners::RollingWindow(5), vulcan::listeners::MinMax()});
+    store_cfg1.add_listeners(queue_len, {vulcan::listeners::RollingWindow(5), vulcan::listeners::MinMax()});
     auto flow1_cwnd_fn = [&](const vulcan::feature_store& fs) -> double {
         double  rtt_max = fs.get_max(rtt);
         int64_t q_min   = fs.get_min(queue_len);
@@ -31,7 +31,7 @@ int main() {
         return std::max(1.0, 1000.0 / rtt_max - static_cast<double>(q_min));
     };
 
-    store_cfg2.add_listeners(rtt, {vulcan::listeners::global::RollingPercentile(100)});
+    store_cfg2.add_listeners(rtt, {vulcan::listeners::RollingPercentile(100)});
     auto flow2_cwnd_fn = [&](const vulcan::feature_store& fs) -> double {
       return fs.get_temporal_percentile(rtt, 0.95);
     };

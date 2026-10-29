@@ -16,7 +16,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto x = registry.global.declare<float>("x", "Test float");
-        config.add_listeners(x, {vulcan::listeners::global::RollingWindow(3)});
+        config.add_listeners(x, {vulcan::listeners::RollingWindow(3)});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         features.update(x, 0.1f);
@@ -30,10 +30,10 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto x = registry.global.declare<float>("x", "Test float");
-        config.add_listeners(x, {vulcan::listeners::global::Average(),
-                                 vulcan::listeners::global::MinMax(),
-                                 vulcan::listeners::global::EWMA({0.5}),
-                                 vulcan::listeners::global::RollingPercentile(4)});
+        config.add_listeners(x, {vulcan::listeners::Average(),
+                                 vulcan::listeners::MinMax(),
+                                 vulcan::listeners::EWMA({0.5}),
+                                 vulcan::listeners::RollingPercentile(4)});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (float v : {1.0f, 4.0f, 2.0f, 3.0f})
@@ -50,7 +50,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto x = registry.object.declare<float>("x", "Per-object float");
-        config.add_listeners(x, {vulcan::listeners::object::RollingWindow(2), vulcan::listeners::object::PopulationPercentile()});
+        config.add_listeners(x, {vulcan::listeners::RollingWindow(2), vulcan::listeners::PopulationPercentile()});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         features.update(x, 1, 1.5f);
@@ -64,7 +64,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto x = registry.global.declare<float>("x", "Test float");
-        config.add_listeners(x, {vulcan::listeners::global::RollingCount(3)});
+        config.add_listeners(x, {vulcan::listeners::RollingCount(3)});
         TEST_ASSERT(construction_throws(registry, config), "RollingCount on float should be rejected");
     });
 

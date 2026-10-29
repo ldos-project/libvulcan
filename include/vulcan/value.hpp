@@ -100,7 +100,7 @@ public:
 
         ss << "--- Expected Output ---\n";
         ss << "1. Listener configuration — attach listeners to each feature you want to use.\n";
-        ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::global::RollingWindow(5), vulcan::listeners::global::MinMax()});\n\n";
+        ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::RollingWindow(5), vulcan::listeners::MinMax()});\n\n";
         ss << "2. Value function — this IS your heuristic. Called each decision step, returns the computed scalar.\n";
         ss << "     auto fn = [&](const vulcan::feature_store& fs) -> double {\n";
         ss << "         // e.g. fs.get_latest(handle), fs.get_max(handle), fs.get_temporal_percentile(handle, 0.95)\n";

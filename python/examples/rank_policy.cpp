@@ -11,10 +11,10 @@ extern "C" void vulcan_configure_rank(vulcan::feature_registry& registry,
     auto prev_decisions = registry.global.lookup<int64_t>("prev_decisions");
 
     // EVOLVE-BLOCK-START
-    store_cfg.add_listeners(system_load,    {vulcan::listeners::global::RollingWindow(1)});
-    store_cfg.add_listeners(latency,        {vulcan::listeners::object::RollingWindow(5)});
-    store_cfg.add_listeners(temp,           {vulcan::listeners::object::RollingWindow(5)});
-    store_cfg.add_listeners(prev_decisions, {vulcan::listeners::global::RollingWindow(1)});
+    store_cfg.add_listeners(system_load,    {vulcan::listeners::RollingWindow(1)});
+    store_cfg.add_listeners(latency,        {vulcan::listeners::RollingWindow(5)});
+    store_cfg.add_listeners(temp,           {vulcan::listeners::RollingWindow(5)});
+    store_cfg.add_listeners(prev_decisions, {vulcan::listeners::RollingWindow(1)});
 
     config.set_scoring_fn([latency, temp, prev_decisions]
                           (const vulcan::feature_store& fs, int64_t obj_id) -> double {

@@ -182,8 +182,8 @@ public:
 
         ss << "--- Expected Output ---\n";
         ss << "1. Listener configuration — attach listeners to each feature you want to use.\n";
-        ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::object::RollingWindow(5)});\n";
-        ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::global::RollingPercentile(100)});\n\n";
+        ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::RollingWindow(5)});\n";
+        ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::RollingPercentile(100)});\n\n";
         ss << "2. Scoring function — this IS your heuristic. Called once per candidate, returns a scalar. Vulcan ranks all candidates by this score and selects the winner via your comparator.\n";
         ss << "     auto fn = [&](const vulcan::feature_store& fs, int64_t obj_id) -> double {\n";
         ss << "         // per-object: fs.get_latest(handle, obj_id), fs.get_avg(handle, obj_id), ...\n";

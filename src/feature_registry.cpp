@@ -49,35 +49,19 @@ std::string feature_registry::generate_policy_prompt() const {
 }
 
 std::vector<std::string> feature_registry::get_available_listeners(feature_desc::scope_type scope) {
+    const bool per_object = scope == feature_desc::scope_type::object;
     std::vector<std::string> results;
-
-    auto check_and_add = [&](auto t) {
-        using T = decltype(t);
-        bool matches = false;
-        if (scope == feature_desc::scope_type::global && T::supports_global) matches = true;
-        if (scope == feature_desc::scope_type::object && T::supports_object) matches = true;
-        
-        if (matches) {
-            std::string desc = T::describe();
-            // Indent for readability if needed, or keep raw
-            results.push_back(desc);
-        }
+    auto add = [&](auto config) {
+        using C = decltype(config);
+        if (per_object || !C::per_object_only) results.push_back(C::describe(per_object));
     };
-    
-    check_and_add(vulcan::listeners::global::Average{});
-    check_and_add(vulcan::listeners::global::MinMax{});
-    check_and_add(vulcan::listeners::global::RollingWindow{0});
-    check_and_add(vulcan::listeners::global::RollingPercentile{0});
-    check_and_add(vulcan::listeners::global::EWMA{0.5});
-    check_and_add(vulcan::listeners::global::RollingCount{0});
-    check_and_add(vulcan::listeners::object::Average{});
-    check_and_add(vulcan::listeners::object::MinMax{});
-    check_and_add(vulcan::listeners::object::RollingWindow{0});
-    check_and_add(vulcan::listeners::object::RollingPercentile{0});
-    check_and_add(vulcan::listeners::object::EWMA{0.5});
-    check_and_add(vulcan::listeners::object::PopulationPercentile{});
-    check_and_add(vulcan::listeners::object::RollingCount{0});
-    
+    add(vulcan::listeners::Average{});
+    add(vulcan::listeners::MinMax{});
+    add(vulcan::listeners::RollingWindow{0});
+    add(vulcan::listeners::RollingPercentile{0});
+    add(vulcan::listeners::EWMA{0.5});
+    add(vulcan::listeners::PopulationPercentile{});
+    add(vulcan::listeners::RollingCount{0});
     return results;
 }
 

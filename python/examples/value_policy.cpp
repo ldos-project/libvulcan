@@ -10,8 +10,8 @@ extern "C" void vulcan_configure_value(vulcan::feature_registry& registry,
     auto queue_len = registry.global.lookup<int64_t>("queue_len");
 
     // EVOLVE-BLOCK-START
-    store_cfg.add_listeners(rtt,       {vulcan::listeners::global::RollingWindow(5), vulcan::listeners::global::MinMax()});
-    store_cfg.add_listeners(queue_len, {vulcan::listeners::global::RollingWindow(5), vulcan::listeners::global::MinMax()});
+    store_cfg.add_listeners(rtt,       {vulcan::listeners::RollingWindow(5), vulcan::listeners::MinMax()});
+    store_cfg.add_listeners(queue_len, {vulcan::listeners::RollingWindow(5), vulcan::listeners::MinMax()});
 
     config.set_value_fn([rtt, queue_len](const vulcan::feature_store& fs) -> double {
         double  rtt_max = fs.get_max(rtt);

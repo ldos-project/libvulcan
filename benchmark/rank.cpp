@@ -34,10 +34,10 @@ int main(int argc, char* argv[]) {
     vulcan::rank_config config;
 
     if (!disable_listeners) {
-        store_cfg.add_listeners(f_1, {vulcan::listeners::object::RollingWindow(1)});
-        store_cfg.add_listeners(f_2, {vulcan::listeners::object::RollingWindow(1)});
-        store_cfg.add_listeners(f_3, {vulcan::listeners::object::RollingWindow(1)});
-        store_cfg.add_listeners(f_4, {vulcan::listeners::object::RollingWindow(1)});
+        store_cfg.add_listeners(f_1, {vulcan::listeners::RollingWindow(1)});
+        store_cfg.add_listeners(f_2, {vulcan::listeners::RollingWindow(1)});
+        store_cfg.add_listeners(f_3, {vulcan::listeners::RollingWindow(1)});
+        store_cfg.add_listeners(f_4, {vulcan::listeners::RollingWindow(1)});
     }
 
     auto scoring_fn = [&](const vulcan::feature_store& fs, int64_t obj_id) -> double {

@@ -16,7 +16,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto flag = registry.global.declare<bool>("flag", "Test flag");
-        config.add_listeners(flag, {vulcan::listeners::global::RollingWindow(3)});
+        config.add_listeners(flag, {vulcan::listeners::RollingWindow(3)});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         TEST_ASSERT(features.get_latest(flag) == false, "Unseen flag should read false");
@@ -34,7 +34,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto flag = registry.global.declare<bool>("flag", "Test flag");
-        config.add_listeners(flag, {vulcan::listeners::global::RollingCount(4)});
+        config.add_listeners(flag, {vulcan::listeners::RollingCount(4)});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (bool v : {true, true, false, true, false, false})
@@ -49,7 +49,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto flag = registry.global.declare<bool>("flag", "Test flag");
-        config.add_listeners(flag, {vulcan::listeners::global::Average(), vulcan::listeners::global::EWMA({0.5})});
+        config.add_listeners(flag, {vulcan::listeners::Average(), vulcan::listeners::EWMA({0.5})});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (bool v : {true, false, true, true})
@@ -63,7 +63,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto flag = registry.object.declare<bool>("flag", "Per-object flag");
-        config.add_listeners(flag, {vulcan::listeners::object::RollingWindow(2), vulcan::listeners::object::RollingCount(2)});
+        config.add_listeners(flag, {vulcan::listeners::RollingWindow(2), vulcan::listeners::RollingCount(2)});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         features.update(flag, 1, true);
@@ -79,7 +79,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto flag = registry.global.declare<bool>("flag", "Test flag");
-        config.add_listeners(flag, {vulcan::listeners::global::MinMax()});
+        config.add_listeners(flag, {vulcan::listeners::MinMax()});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         features.update(flag, true);
@@ -96,11 +96,11 @@ int main() {
         auto o = registry.object.declare<bool>("o", "Object flag");
 
         vulcan::store_config percentile;
-        percentile.add_listeners(g, {vulcan::listeners::global::RollingPercentile(4)});
+        percentile.add_listeners(g, {vulcan::listeners::RollingPercentile(4)});
         TEST_ASSERT(construction_throws(registry, percentile), "RollingPercentile on bool should be rejected");
 
         vulcan::store_config population;
-        population.add_listeners(o, {vulcan::listeners::object::PopulationPercentile()});
+        population.add_listeners(o, {vulcan::listeners::PopulationPercentile()});
         TEST_ASSERT(construction_throws(registry, population), "PopulationPercentile on bool should be rejected");
     });
 

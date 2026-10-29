@@ -6,7 +6,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto var1 = registry.global.declare<double>("var1", "Test feature");
-        config.add_listeners(var1, {vulcan::listeners::global::RollingWindow(5)});
+        config.add_listeners(var1, {vulcan::listeners::RollingWindow(5)});
 
         auto features = vulcan::instantiate_feature_store(registry, config);
         
@@ -32,7 +32,7 @@ int main() {
         
         // Add listeners
         vulcan::store_config config;
-        config.add_listeners(obj_val, {vulcan::listeners::object::RollingWindow(3)});
+        config.add_listeners(obj_val, {vulcan::listeners::RollingWindow(3)});
         
         auto store = vulcan::instantiate_feature_store(registry, config);
         
@@ -55,7 +55,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto var1 = registry.global.declare<int64_t>("var1_i64", "Test i64 feature");
-        config.add_listeners(var1, {vulcan::listeners::global::RollingWindow(5)});
+        config.add_listeners(var1, {vulcan::listeners::RollingWindow(5)});
 
         auto features = vulcan::instantiate_feature_store(registry, config);
 
@@ -73,7 +73,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto var1 = registry.global.declare<int64_t>("big_i64", "Large i64 feature");
-        config.add_listeners(var1, {vulcan::listeners::global::RollingWindow(3)});
+        config.add_listeners(var1, {vulcan::listeners::RollingWindow(3)});
 
         auto features = vulcan::instantiate_feature_store(registry, config);
 
@@ -91,7 +91,7 @@ int main() {
         auto obj_val = registry.object.declare<int64_t>("obj_i64", "Object i64 feature");
 
         vulcan::store_config config;
-        config.add_listeners(obj_val, {vulcan::listeners::object::RollingWindow(3)});
+        config.add_listeners(obj_val, {vulcan::listeners::RollingWindow(3)});
 
         auto store = vulcan::instantiate_feature_store(registry, config);
 
@@ -114,8 +114,8 @@ int main() {
         auto obj_i64 = registry.object.declare<int64_t>("obj_i64_w0", "Object i64 unbounded window");
 
         vulcan::store_config config;
-        config.add_listeners(obj_val, {vulcan::listeners::object::RollingWindow(0)});
-        config.add_listeners(obj_i64, {vulcan::listeners::object::RollingWindow(0)});
+        config.add_listeners(obj_val, {vulcan::listeners::RollingWindow(0)});
+        config.add_listeners(obj_i64, {vulcan::listeners::RollingWindow(0)});
 
         auto store = vulcan::instantiate_feature_store(registry, config);
 

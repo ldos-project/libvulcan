@@ -44,8 +44,8 @@ int main() {
         TestFixture fixture;
         vulcan::store_config config;
         config.add_listeners(fixture.var1, {
-            vulcan::listeners::global::RollingCount(3),
-            vulcan::listeners::global::RollingCount(5) // duplicate type
+            vulcan::listeners::RollingCount(3),
+            vulcan::listeners::RollingCount(5) // duplicate type
         });
         
         bool threw_exception = false;
@@ -62,7 +62,7 @@ int main() {
         vulcan::store_config config;
         
         config.add_listeners(fixture.var2, {
-            vulcan::listeners::global::MinMax()
+            vulcan::listeners::MinMax()
         });
         
         auto features = fixture.create_store(config);
@@ -83,7 +83,7 @@ int main() {
         vulcan::store_config config;
         
         config.add_listeners(fixture.var2, {
-            vulcan::listeners::global::MinMax()
+            vulcan::listeners::MinMax()
         });
         auto features = fixture.create_store(config);
         

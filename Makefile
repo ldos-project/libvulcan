@@ -52,7 +52,10 @@ test_float: test/test_float.cpp src/vulcan.o src/feature_registry.o src/feature_
 test_int32: test/test_int32.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 	$(CXX) $(CXXFLAGS) -o test/test_int32.o test/test_int32.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
-test: test_count test_minmaxavg test_percentile test_rolling_window test_safety test_ewma test_bool test_float test_int32
+test_listener_configs: test/test_listener_configs.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+	$(CXX) $(CXXFLAGS) -o test/test_listener_configs.o test/test_listener_configs.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+
+test: test_count test_minmaxavg test_percentile test_rolling_window test_safety test_ewma test_bool test_float test_int32 test_listener_configs
 	./test/test_count.o
 	./test/test_minmaxavg.o
 	./test/test_percentile.o
@@ -62,6 +65,7 @@ test: test_count test_minmaxavg test_percentile test_rolling_window test_safety 
 	./test/test_bool.o
 	./test/test_float.o
 	./test/test_int32.o
+	./test/test_listener_configs.o
 
 src/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@

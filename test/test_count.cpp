@@ -11,7 +11,7 @@ int main() {
         auto user_decisions   = registry.object.declare<int64_t>("user_decisions", "Object Tracking");
 
         // Track last 3 global decisions
-        config.add_listeners(global_decisions, {vulcan::listeners::global::RollingCount(3)});
+        config.add_listeners(global_decisions, {vulcan::listeners::RollingCount(3)});
 
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
@@ -41,7 +41,7 @@ int main() {
 
         vulcan::store_config config;
 
-        config.add_listeners(user_decisions, {vulcan::listeners::object::RollingCount(2)});
+        config.add_listeners(user_decisions, {vulcan::listeners::RollingCount(2)});
 
         auto fs = vulcan::instantiate_feature_store(registry, config);
 

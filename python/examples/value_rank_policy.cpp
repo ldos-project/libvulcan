@@ -12,10 +12,10 @@ extern "C" void vulcan_configure_value(vulcan::feature_registry& registry,
     auto system_iops    = registry.global.lookup<double>("system_iops");
 
     // EVOLVE-BLOCK-START
-    store_cfg.add_listeners(io_queue_depth, {vulcan::listeners::global::RollingWindow(3),
-                                             vulcan::listeners::global::EWMA({0.3})});
-    store_cfg.add_listeners(system_iops,    {vulcan::listeners::global::RollingWindow(3),
-                                             vulcan::listeners::global::MinMax()});
+    store_cfg.add_listeners(io_queue_depth, {vulcan::listeners::RollingWindow(3),
+                                             vulcan::listeners::EWMA({0.3})});
+    store_cfg.add_listeners(system_iops,    {vulcan::listeners::RollingWindow(3),
+                                             vulcan::listeners::MinMax()});
 
     config.set_value_fn([io_queue_depth, system_iops](const vulcan::feature_store& fs) -> double {
         double queue_ewma = fs.get_ewma(io_queue_depth, 0.3);
@@ -34,9 +34,9 @@ extern "C" void vulcan_configure_rank(vulcan::feature_registry& registry,
     auto ssd_queue_len = registry.object.lookup<int64_t>("ssd_queue_len");
 
     // EVOLVE-BLOCK-START
-    store_cfg.add_listeners(ssd_latency,    {vulcan::listeners::object::RollingWindow(3),
-                                             vulcan::listeners::object::EWMA({0.5})});
-    store_cfg.add_listeners(ssd_queue_len,  {vulcan::listeners::object::RollingWindow(3)});
+    store_cfg.add_listeners(ssd_latency,    {vulcan::listeners::RollingWindow(3),
+                                             vulcan::listeners::EWMA({0.5})});
+    store_cfg.add_listeners(ssd_queue_len,  {vulcan::listeners::RollingWindow(3)});
 
     config.set_scoring_fn([ssd_latency, ssd_queue_len]
                           (const vulcan::feature_store& fs, int64_t obj_id) -> double {

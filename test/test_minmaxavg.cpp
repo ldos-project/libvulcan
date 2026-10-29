@@ -7,7 +7,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto var1 = registry.global.declare<double>("var1", "Test feature");
-        config.add_listeners(var1, {vulcan::listeners::global::MinMax(), vulcan::listeners::global::Average()});
+        config.add_listeners(var1, {vulcan::listeners::MinMax(), vulcan::listeners::Average()});
         
         auto features = vulcan::instantiate_feature_store(registry, config);
 
@@ -33,7 +33,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto n = registry.global.declare<int64_t>("n", "Large integer");
-        config.add_listeners(n, {vulcan::listeners::global::MinMax()});
+        config.add_listeners(n, {vulcan::listeners::MinMax()});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         const int64_t a = 9007199254740993LL;   // 2^53 + 1, not representable as a double

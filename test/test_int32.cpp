@@ -7,7 +7,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto n = registry.global.declare<int32_t>("n", "Test int32");
-        config.add_listeners(n, {vulcan::listeners::global::RollingWindow(3), vulcan::listeners::global::RollingCount(3)});
+        config.add_listeners(n, {vulcan::listeners::RollingWindow(3), vulcan::listeners::RollingCount(3)});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (int32_t v : {7, 2, 7, 7})
@@ -22,9 +22,9 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto n = registry.global.declare<int32_t>("n", "Test int32");
-        config.add_listeners(n, {vulcan::listeners::global::Average(),
-                                 vulcan::listeners::global::MinMax(),
-                                 vulcan::listeners::global::RollingPercentile(4)});
+        config.add_listeners(n, {vulcan::listeners::Average(),
+                                 vulcan::listeners::MinMax(),
+                                 vulcan::listeners::RollingPercentile(4)});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (int32_t v : {-5, 10, 3, 2147483647})
@@ -39,7 +39,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto n = registry.object.declare<int32_t>("n", "Per-object int32");
-        config.add_listeners(n, {vulcan::listeners::object::RollingWindow(2), vulcan::listeners::object::PopulationPercentile()});
+        config.add_listeners(n, {vulcan::listeners::RollingWindow(2), vulcan::listeners::PopulationPercentile()});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         features.update(n, 1, 10);

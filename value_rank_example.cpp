@@ -53,10 +53,10 @@ int main() {
     vulcan::rank_config rcfg;
 
     // EVOLVE-BLOCK-START
-    store_cfg.add_listeners(io_queue_depth, {vulcan::listeners::global::RollingWindow(3), vulcan::listeners::global::EWMA({0.3})});
-    store_cfg.add_listeners(system_iops,    {vulcan::listeners::global::RollingWindow(3), vulcan::listeners::global::MinMax()});
-    store_cfg.add_listeners(ssd_latency,    {vulcan::listeners::object::RollingWindow(3), vulcan::listeners::object::EWMA({0.5})});
-    store_cfg.add_listeners(ssd_queue_len,  {vulcan::listeners::object::RollingWindow(3)});
+    store_cfg.add_listeners(io_queue_depth, {vulcan::listeners::RollingWindow(3), vulcan::listeners::EWMA({0.3})});
+    store_cfg.add_listeners(system_iops,    {vulcan::listeners::RollingWindow(3), vulcan::listeners::MinMax()});
+    store_cfg.add_listeners(ssd_latency,    {vulcan::listeners::RollingWindow(3), vulcan::listeners::EWMA({0.5})});
+    store_cfg.add_listeners(ssd_queue_len,  {vulcan::listeners::RollingWindow(3)});
 
     vcfg.set_value_fn([&](const vulcan::feature_store& fs) -> double {
         double queue_ewma = fs.get_ewma(io_queue_depth, 0.3);

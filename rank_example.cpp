@@ -43,10 +43,10 @@ int main() {
     vulcan::rank_config config;
 
     // EVOLVE-BLOCK-START
-    store_cfg.add_listeners(system_load, {vulcan::listeners::global::RollingWindow(1), vulcan::listeners::global::RollingPercentile(100)});
-    store_cfg.add_listeners(latency, {vulcan::listeners::object::RollingWindow(5)});
-    store_cfg.add_listeners(temp, {vulcan::listeners::object::RollingWindow(5)});
-    store_cfg.add_listeners(prev_decisions, {vulcan::listeners::global::RollingWindow(1)});
+    store_cfg.add_listeners(system_load, {vulcan::listeners::RollingWindow(1), vulcan::listeners::RollingPercentile(100)});
+    store_cfg.add_listeners(latency, {vulcan::listeners::RollingWindow(5)});
+    store_cfg.add_listeners(temp, {vulcan::listeners::RollingWindow(5)});
+    store_cfg.add_listeners(prev_decisions, {vulcan::listeners::RollingWindow(1)});
     auto scoring_fn = [&](const vulcan::feature_store& fs, int64_t obj_id) -> double {
         double l = fs.get_latest(latency, obj_id);
         double t = fs.get_latest(temp, obj_id);
