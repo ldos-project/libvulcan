@@ -46,7 +46,10 @@ test_ewma: test/test_ewma.cpp src/vulcan.o src/feature_registry.o src/feature_st
 test_bool: test/test_bool.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 	$(CXX) $(CXXFLAGS) -o test/test_bool.o test/test_bool.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
-test: test_count test_minmaxavg test_percentile test_rolling_window test_safety test_ewma test_bool
+test_float: test/test_float.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+	$(CXX) $(CXXFLAGS) -o test/test_float.o test/test_float.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+
+test: test_count test_minmaxavg test_percentile test_rolling_window test_safety test_ewma test_bool test_float
 	./test/test_count.o
 	./test/test_minmaxavg.o
 	./test/test_percentile.o
@@ -54,6 +57,7 @@ test: test_count test_minmaxavg test_percentile test_rolling_window test_safety 
 	./test/test_safety.o
 	./test/test_ewma.o
 	./test/test_bool.o
+	./test/test_float.o
 
 src/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
