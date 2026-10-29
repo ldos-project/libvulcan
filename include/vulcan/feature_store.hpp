@@ -205,6 +205,7 @@ static std::unique_ptr<RuntimeListener> make_typed(feature_type t, const Args&..
         case feature_type::f64:     return build<Listener, double>(args...);
         case feature_type::f32:     return build<Listener, float>(args...);
         case feature_type::i64:     return build<Listener, int64_t>(args...);
+        case feature_type::i32:     return build<Listener, int32_t>(args...);
         case feature_type::boolean: return build<Listener, bool>(args...);
         default: throw std::invalid_argument("Listener attached to a feature of unknown type.");
     }

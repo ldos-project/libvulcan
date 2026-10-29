@@ -14,6 +14,7 @@ enum class feature_type {
     f64, 
     f32,
     i64,
+    i32,
     boolean,
     unknown
 };
@@ -24,6 +25,7 @@ template <typename T> struct feature_type_of;
 template <> struct feature_type_of<double>  { static constexpr feature_type value = feature_type::f64; };
 template <> struct feature_type_of<float>   { static constexpr feature_type value = feature_type::f32; };
 template <> struct feature_type_of<int64_t> { static constexpr feature_type value = feature_type::i64; };
+template <> struct feature_type_of<int32_t> { static constexpr feature_type value = feature_type::i32; };
 template <> struct feature_type_of<bool>    { static constexpr feature_type value = feature_type::boolean; };
 
 inline const char* feature_type_name(feature_type t) {
@@ -31,6 +33,7 @@ inline const char* feature_type_name(feature_type t) {
         case feature_type::f64:     return "f64";
         case feature_type::f32:     return "f32";
         case feature_type::i64:     return "i64";
+        case feature_type::i32:     return "i32";
         case feature_type::boolean: return "bool";
         default:                    return "unknown";
     }
