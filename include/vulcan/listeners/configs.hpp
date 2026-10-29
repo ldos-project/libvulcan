@@ -47,7 +47,7 @@ struct RollingWindow {
                "\t  Keeps the last N updates in order; exposes the most-recent value, rolling average, kth-most-recent lookup, and the full window.\n"
                "\t- fs.get_latest(" + a + ")\n"
                "\t- fs.get_kth_recent(" + a + ", int k)\n"
-               "\t- fs.get_avg(" + a + ")\n"
+               "\t- fs.get_window_avg(" + a + ")\n"
                "\t- fs.get_all(" + a + ")";
     }
     std::string to_string() const { return "vulcan::listeners::RollingWindow(" + std::to_string(window) + ")"; }

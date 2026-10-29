@@ -186,7 +186,7 @@ public:
         ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::RollingPercentile(100)});\n\n";
         ss << "2. Scoring function — this IS your heuristic. Called once per candidate, returns a scalar. Vulcan ranks all candidates by this score and selects the winner via your comparator.\n";
         ss << "     auto fn = [&](const vulcan::feature_store& fs, int64_t obj_id) -> double {\n";
-        ss << "         // per-object: fs.get_latest(handle, obj_id), fs.get_avg(handle, obj_id), ...\n";
+        ss << "         // per-object: fs.get_latest(handle, obj_id), fs.get_window_avg(handle, obj_id), ...\n";
         ss << "         // global:     fs.get_latest(handle), fs.get_temporal_percentile(handle, 0.95), ...\n";
         ss << "         return <score>;\n";
         ss << "     };\n";

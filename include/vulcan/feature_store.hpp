@@ -96,15 +96,19 @@ public:
     template <typename T>
     double get_avg(feature_handle<T> h) const { return get_avg(h, global_key); }
 
+    // Average: the mean of every value the feature has received
     template <typename T>
     double get_avg(feature_handle<T> h, int64_t obj_id) const {
-        try {
-            auto* listener = get_listener<AverageRuntime<T>>(h.id);
-            return listener->get_avg(obj_id);
-        } catch (...) {
-            auto* listener = get_listener<RollingWindowRuntime<T>>(h.id);
-            return listener->get_avg(obj_id);
-        }
+        return get_listener<AverageRuntime<T>>(h.id)->get_avg(obj_id);
+    }
+
+    // Window average: the mean of the values a RollingWindow currently holds
+    template <typename T>
+    double get_window_avg(feature_handle<T> h) const { return get_window_avg(h, global_key); }
+
+    template <typename T>
+    double get_window_avg(feature_handle<T> h, int64_t obj_id) const {
+        return get_listener<RollingWindowRuntime<T>>(h.id)->get_avg(obj_id);
     }
 
     template <typename T>

@@ -1,5 +1,6 @@
 #include "test_utils.hpp"
 #include <iostream>
+#include <stdexcept>
 
 int main() {
     vulcan_test::run_test("RollingWindow - Global", []() {
@@ -128,6 +129,40 @@ int main() {
         TEST_ASSERT(store.get_latest(obj_i64, 1) == 200, "window=0 i64 latest incorrect");
         TEST_ASSERT(store.get_kth_recent(obj_val, 1, 1) == 190.0, "window=0 f64 kth incorrect");
         TEST_ASSERT(store.get_kth_recent(obj_i64, 1, 1) == 190, "window=0 i64 kth incorrect");
+    });
+
+
+    vulcan_test::run_test("RollingWindow - get_window_avg averages only the window", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        auto g = registry.global.declare<double>("g", "Global value");
+        auto o = registry.object.declare<double>("o", "Object value");
+        auto both = registry.global.declare<double>("both", "Average and RollingWindow");
+        config.add_listeners(g, {vulcan::listeners::RollingWindow(3)});
+        config.add_listeners(o, {vulcan::listeners::RollingWindow(2)});
+        config.add_listeners(both, {vulcan::listeners::Average(), vulcan::listeners::RollingWindow(2)});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        for (double v : {1.0, 2.0, 3.0, 10.0}) {
+            features.update(g, v);
+            features.update(o, 7, v);
+            features.update(both, v);
+        }
+        TEST_ASSERT(features.get_window_avg(g) == 5.0, "Mean of the last 3: 2, 3, 10");
+        TEST_ASSERT(features.get_window_avg(o, 7) == 6.5, "Mean of the last 2: 3, 10");
+
+        // With both listeners attached, the two getters are different statistics.
+        TEST_ASSERT(features.get_avg(both) == 4.0, "All-time mean of 1, 2, 3, 10");
+        TEST_ASSERT(features.get_window_avg(both) == 6.5, "Window mean of 3, 10");
+
+        // get_avg reads only Average; it does not fall back to a RollingWindow.
+        bool threw = false;
+        try {
+            features.get_avg(g);
+        } catch (const std::runtime_error&) {
+            threw = true;
+        }
+        TEST_ASSERT(threw, "get_avg without an Average listener should throw");
     });
 
     return 0;
