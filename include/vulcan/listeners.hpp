@@ -1,7 +1,7 @@
 #pragma once
 
 #include <variant>
-#include "vulcan/listeners/object.hpp"
+#include "vulcan/listeners/configs.hpp"
 
 namespace vulcan {
 
