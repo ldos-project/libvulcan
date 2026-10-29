@@ -60,7 +60,7 @@ struct RollingPercentile {
     static std::string describe() {
         return "vulcan::listeners::object::RollingPercentile(int window_size)\n"
                "\t  Keeps the last N updates per object in a sorted structure; computes arbitrary percentiles over that per-object window.\n"
-               "\t- fs.get_percentile(handle, int64_t obj_id, double p)";
+               "\t- fs.get_temporal_percentile(handle, int64_t obj_id, double p)";
     }
     std::string get_documentation() const {
         return describe() + "\n(Current Instance Window: " + std::to_string(window) + ")";
@@ -115,7 +115,7 @@ struct PopulationPercentile {
     static std::string describe() {
         return "vulcan::listeners::object::PopulationPercentile()\n"
                "\t  Tracks each object's latest value and computes percentiles across the entire object population. Use to compare one object's current value against all others.\n"
-               "\t- fs.get_percentile(handle, double p)";
+               "\t- fs.get_pop_percentile(handle, double p)";
     }
     std::string get_documentation() const { return describe(); }
 };

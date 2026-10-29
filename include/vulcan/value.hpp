@@ -103,7 +103,7 @@ public:
         ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::global::RollingWindow(5), vulcan::listeners::global::MinMax()});\n\n";
         ss << "2. Value function — this IS your heuristic. Called each decision step, returns the computed scalar.\n";
         ss << "     auto fn = [&](const vulcan::feature_store& fs) -> double {\n";
-        ss << "         // e.g. fs.get_latest(handle), fs.get_max(handle), fs.get_percentile(handle, 0.95)\n";
+        ss << "         // e.g. fs.get_latest(handle), fs.get_max(handle), fs.get_temporal_percentile(handle, 0.95)\n";
         ss << "         return <computed_value>;\n";
         ss << "     };\n";
         ss << "     config.set_value_fn(fn);\n";

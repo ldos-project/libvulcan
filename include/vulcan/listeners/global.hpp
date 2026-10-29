@@ -60,7 +60,7 @@ struct RollingPercentile {
     static std::string describe() {
         return "vulcan::listeners::global::RollingPercentile(int window_size)\n"
                "\t  Keeps the last N updates in a sorted structure; computes arbitrary percentiles over that window.\n"
-               "\t- fs.get_percentile(handle, double p)";
+               "\t- fs.get_temporal_percentile(handle, double p)";
     }
     std::string get_documentation() const {
         return describe() + "\n(Current Instance Window: " + std::to_string(window) + ")";

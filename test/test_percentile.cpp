@@ -36,10 +36,10 @@ int main() {
             store.update(global_feat, static_cast<double>(i));
         }
 
-        double p50 = store.get_percentile(global_feat, 0.5);
-        double p90 = store.get_percentile(global_feat, 0.9);
-        double p0 = store.get_percentile(global_feat, 0.0);
-        double p100 = store.get_percentile(global_feat, 1.0);
+        double p50 = store.get_temporal_percentile(global_feat, 0.5);
+        double p90 = store.get_temporal_percentile(global_feat, 0.9);
+        double p0 = store.get_temporal_percentile(global_feat, 0.0);
+        double p100 = store.get_temporal_percentile(global_feat, 1.0);
 
         // median of 0..99 is 49 or 50. Our implementation is p * (size-1) idx.
         // 0.5 * 99 = 49.5 -> 49 (floor) due to static_cast. 
@@ -56,7 +56,7 @@ int main() {
         }
         
         // Window should be 100..199
-        double p50_new = store.get_percentile(global_feat, 0.5);
+        double p50_new = store.get_temporal_percentile(global_feat, 0.5);
         TEST_ASSERT(p50_new >= 149.0, "Global P50 after slide should be ~149, got " + std::to_string(p50_new));
     });
 
@@ -70,7 +70,7 @@ int main() {
         store.update(obj_feat, 3, 30.0);
 
         // Median should be 20
-        double dist_p50 = store.get_percentile(obj_feat, 0.5);
+        double dist_p50 = store.get_pop_percentile(obj_feat, 0.5);
         TEST_ASSERT(approx(dist_p50, 20.0), "Population P50 should be 20, got " + std::to_string(dist_p50));
 
         // Update Obj 1: 10 -> 100
@@ -78,14 +78,14 @@ int main() {
         // Median should be 30
         store.update(obj_feat, 1, 100.0);
         
-        dist_p50 = store.get_percentile(obj_feat, 0.5);
+        dist_p50 = store.get_pop_percentile(obj_feat, 0.5);
         TEST_ASSERT(approx(dist_p50, 30.0), "Population P50 after update should be 30, got " + std::to_string(dist_p50));
 
         // Add Obj 4: 5
         // State: 5, 20, 30, 100
         // Median (0.5 * 3 = 1.5 -> idx 1) -> 20
         store.update(obj_feat, 4, 5.0);
-        dist_p50 = store.get_percentile(obj_feat, 0.5);
+        dist_p50 = store.get_pop_percentile(obj_feat, 0.5);
         TEST_ASSERT(approx(dist_p50, 20.0), "Population P50 (4 items) should be 20, got " + std::to_string(dist_p50));
     });
 
@@ -96,25 +96,25 @@ int main() {
         store.update(obj_combined_feat, 1, 50.0);
 
         // Object 1 history [10.0, 50.0], P50 is 10.0 or 50.0
-        double obj1_p50 = store.get_percentile(obj_combined_feat, 1, 0.5);
+        double obj1_p50 = store.get_temporal_percentile(obj_combined_feat, 1, 0.5);
         TEST_ASSERT(approx(obj1_p50, 10.0) || approx(obj1_p50, 50.0), "Obj1 Rolling P50 should be 10 or 50, got " + std::to_string(obj1_p50));
 
         // Object 2 history [20.0], P50 is 20.0
-        double obj2_p50 = store.get_percentile(obj_combined_feat, 2, 0.5);
+        double obj2_p50 = store.get_temporal_percentile(obj_combined_feat, 2, 0.5);
         TEST_ASSERT(approx(obj2_p50, 20.0), "Obj2 Rolling P50 should be 20, got " + std::to_string(obj2_p50));
 
         // Population: Latest values are Obj1: 50.0, Obj2: 20.0
-        double pop_p50 = store.get_percentile(obj_combined_feat, 0.5);
+        double pop_p50 = store.get_pop_percentile(obj_combined_feat, 0.5);
         TEST_ASSERT(approx(pop_p50, 20.0) || approx(pop_p50, 50.0), "Population P50 should be 20 or 50, got " + std::to_string(pop_p50));
 
         // Add 100 to Obj1
         store.update(obj_combined_feat, 1, 100.0);
         // Obj1 history: 10, 50, 100. P50
-        obj1_p50 = store.get_percentile(obj_combined_feat, 1, 0.5);
+        obj1_p50 = store.get_temporal_percentile(obj_combined_feat, 1, 0.5);
         TEST_ASSERT(approx(obj1_p50, 50.0) || approx(obj1_p50, 100.0), "Obj1 Rolling P50 should be 50 or 100, got " + std::to_string(obj1_p50));
 
         // Population: Obj1: 100.0, Obj2: 20.0
-        pop_p50 = store.get_percentile(obj_combined_feat, 0.5);
+        pop_p50 = store.get_pop_percentile(obj_combined_feat, 0.5);
         TEST_ASSERT(approx(pop_p50, 20.0) || approx(pop_p50, 100.0), "Population P50 should be 20 or 100, got " + std::to_string(pop_p50));
     });
 

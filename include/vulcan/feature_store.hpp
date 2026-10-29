@@ -61,22 +61,24 @@ public:
     void update(feature_handle<double> h, int64_t obj_id, double val);
     void update(feature_handle<int64_t> h, int64_t obj_id, int64_t val);
 
-    // Percentile
+    // Temporal percentile: over a feature's recent values (RollingPercentile)
     template <typename T>
-    double get_percentile(feature_handle<T> h, double p) const {
-        if (h.id >= 0 && h.id < global_store_vec.size() && global_store_vec[h.id].type != feature_type::unknown) {
-            auto* listener = get_global_listener<GlobalRollingPercentileRuntime>(h.id);
-            return listener->get_percentile(p);
-        } else {
-            auto* listener = get_object_listener<ObjectPopulationPercentileRuntime>(h.id);
-            return listener->get_percentile(p);
-        }
+    double get_temporal_percentile(feature_handle<T> h, double p) const {
+        auto* listener = get_global_listener<GlobalRollingPercentileRuntime>(h.id);
+        return listener->get_percentile(p);
     }
 
     template <typename T>
-    double get_percentile(feature_handle<T> h, int64_t obj_id, double p) const {
+    double get_temporal_percentile(feature_handle<T> h, int64_t obj_id, double p) const {
         auto* listener = get_object_listener<ObjectRollingPercentileRuntime>(h.id);
         return listener->get_percentile(obj_id, p);
+    }
+
+    // Population percentile: across every object's latest value (PopulationPercentile)
+    template <typename T>
+    double get_pop_percentile(feature_handle<T> h, double p) const {
+        auto* listener = get_object_listener<ObjectPopulationPercentileRuntime>(h.id);
+        return listener->get_percentile(p);
     }
 
     // MinMax
