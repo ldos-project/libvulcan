@@ -24,6 +24,15 @@ template <> struct feature_type_of<double>  { static constexpr feature_type valu
 template <> struct feature_type_of<int64_t> { static constexpr feature_type value = feature_type::i64; };
 template <> struct feature_type_of<bool>    { static constexpr feature_type value = feature_type::boolean; };
 
+inline const char* feature_type_name(feature_type t) {
+    switch (t) {
+        case feature_type::f64:     return "f64";
+        case feature_type::i64:     return "i64";
+        case feature_type::boolean: return "bool";
+        default:                    return "unknown";
+    }
+}
+
 // Generic feature handle
 template <typename T>
 struct feature_handle {

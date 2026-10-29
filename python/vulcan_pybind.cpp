@@ -122,16 +122,16 @@ PYBIND11_MODULE(_vulcan, m) {
     // ---- Feature store ---------------------------------------------------------
     py::class_<vulcan::feature_store, std::shared_ptr<vulcan::feature_store>>(m, "FeatureStore")
         .def("update",
-             py::overload_cast<vulcan::feature_handle<double>, double>(&vulcan::feature_store::update),
+             py::overload_cast<vulcan::feature_handle<double>, double>(&vulcan::feature_store::update<double>),
              py::arg("handle"), py::arg("value"))
         .def("update",
-             py::overload_cast<vulcan::feature_handle<int64_t>, int64_t>(&vulcan::feature_store::update),
+             py::overload_cast<vulcan::feature_handle<int64_t>, int64_t>(&vulcan::feature_store::update<int64_t>),
              py::arg("handle"), py::arg("value"))
         .def("update",
-             py::overload_cast<vulcan::feature_handle<double>, int64_t, double>(&vulcan::feature_store::update),
+             py::overload_cast<vulcan::feature_handle<double>, int64_t, double>(&vulcan::feature_store::update<double>),
              py::arg("handle"), py::arg("obj_id"), py::arg("value"))
         .def("update",
-             py::overload_cast<vulcan::feature_handle<int64_t>, int64_t, int64_t>(&vulcan::feature_store::update),
+             py::overload_cast<vulcan::feature_handle<int64_t>, int64_t, int64_t>(&vulcan::feature_store::update<int64_t>),
              py::arg("handle"), py::arg("obj_id"), py::arg("value"));
 
     // ---- Policies --------------------------------------------------------------

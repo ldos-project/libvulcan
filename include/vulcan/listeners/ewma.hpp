@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vulcan/runtime_listener.hpp"
+#include <string>
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -11,8 +12,11 @@
 
 namespace vulcan {
 
-class EWMARuntime : public RuntimeListener {
+template <typename T>
+class EWMARuntime : public TypedRuntimeListener<T> {
 public:
+    using Type = RuntimeListener::Type;
+
     EWMARuntime(std::initializer_list<double> alphas) {
         for (double a : alphas) this->alphas.push_back(round_alpha(a));
     }
@@ -20,11 +24,13 @@ public:
         for (double a : alphas) this->alphas.push_back(round_alpha(a));
     }
 
-    void on_update(int64_t obj_id, double val) override { get_stats(obj_id).update(val, alphas); }
-    void on_update(int64_t obj_id, int64_t val) override { get_stats(obj_id).update(static_cast<double>(val), alphas); }
+    void on_update(int64_t obj_id, T val) override { get_stats(obj_id).update(static_cast<double>(val), alphas); }
 
     Type get_type() const override { return Type::EWMA; }
     static Type static_type() { return Type::EWMA; }
+
+    static constexpr bool accepts = true;
+    static std::string name() { return "EWMA"; }
 
     double get(int64_t obj_id, double alpha) const {
         auto it = stats.find(obj_id);

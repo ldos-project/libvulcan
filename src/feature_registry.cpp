@@ -10,9 +10,6 @@ static const feature_desc* find_by_name(const std::vector<feature_desc>& feature
     return nullptr;
 }
 
-static const char* type_name(feature_type t) {
-    return t == feature_type::f64 ? "f64" : t == feature_type::i64 ? "i64" : t == feature_type::boolean ? "bool" : "unknown";
-}
 static const char* scope_name(feature_desc::scope_type s) {
     return s == feature_desc::scope_type::global ? "global" : "object";
 }
@@ -37,7 +34,7 @@ const feature_desc& feature_registry::lookup_checked(const std::string& name, fe
     if (!f)
         throw std::runtime_error("Feature '" + name + "' not declared in registry");
     if (f->type != want_type)
-        throw std::runtime_error("Feature '" + name + "' is " + type_name(f->type) + ", requested " + type_name(want_type));
+        throw std::runtime_error("Feature '" + name + "' is " + feature_type_name(f->type) + ", requested " + feature_type_name(want_type));
     if (f->scope != want_scope)
         throw std::runtime_error("Feature '" + name + "' is " + scope_name(f->scope) + "-scoped, requested " + scope_name(want_scope));
     return *f;

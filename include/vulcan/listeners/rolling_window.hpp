@@ -1,23 +1,26 @@
 #pragma once
 
 #include "vulcan/runtime_listener.hpp"
+#include <string>
 #include <vector>
 #include <unordered_map>
 
 namespace vulcan {
 
-// T is the feature's value type (double or int64_t), chosen by the store when
-// it builds the listener. The store only pushes values of that type.
 template <typename T>
-class RollingWindowRuntime : public RuntimeListener {
+class RollingWindowRuntime : public TypedRuntimeListener<T> {
 public:
+    using Type = RuntimeListener::Type;
+
     RollingWindowRuntime(int w) : window(w) {}
 
-    void on_update(int64_t obj_id, double val) override { get_stats(obj_id).update(static_cast<T>(val), window); }
-    void on_update(int64_t obj_id, int64_t val) override { get_stats(obj_id).update(static_cast<T>(val), window); }
+    void on_update(int64_t obj_id, T val) override { get_stats(obj_id).update(val, window); }
 
     Type get_type() const override { return Type::RollingWindow; }
     static Type static_type() { return Type::RollingWindow; }
+
+    static constexpr bool accepts = true;
+    static std::string name() { return "RollingWindow"; }
 
     T get_latest(int64_t obj_id) const {
         auto it = stats.find(obj_id);

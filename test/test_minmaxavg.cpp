@@ -28,5 +28,21 @@ int main() {
             TEST_ASSERT(std::abs(current_avg - expected_avg) < 1e-6, "Avg value mismatch: got " + std::to_string(current_avg) + " expected " + std::to_string(expected_avg));
         }
     });
+
+    vulcan_test::run_test("Int64 - MinMax is exact beyond 2^53", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        auto n = registry.global.declare<int64_t>("n", "Large integer");
+        config.add_listeners(n, {vulcan::listeners::global::MinMax()});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        const int64_t a = 9007199254740993LL;   // 2^53 + 1, not representable as a double
+        const int64_t b = 9007199254740995LL;   // 2^53 + 3
+        features.update(n, a);
+        features.update(n, b);
+        TEST_ASSERT(features.get_max(n) == b, "Max is exact");
+        TEST_ASSERT(features.get_min(n) == a, "Min is exact");
+    });
+
     return 0;
 }

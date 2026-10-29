@@ -75,14 +75,25 @@ int main() {
         TEST_ASSERT(features.get_count(flag, 2, true) == 0, "Object 2 has no trues");
     });
 
-    vulcan_test::run_test("Bool - Order statistics are rejected at construction", []() {
+    vulcan_test::run_test("Bool - MinMax gives any-true and all-true", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        auto flag = registry.global.declare<bool>("flag", "Test flag");
+        config.add_listeners(flag, {vulcan::listeners::global::MinMax()});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        features.update(flag, true);
+        features.update(flag, true);
+        TEST_ASSERT(features.get_max(flag) == true && features.get_min(flag) == true, "All true so far");
+        features.update(flag, false);
+        TEST_ASSERT(features.get_max(flag) == true, "Max: some value was true");
+        TEST_ASSERT(features.get_min(flag) == false, "Min: not every value was true");
+    });
+
+    vulcan_test::run_test("Bool - Percentiles are rejected at construction", []() {
         vulcan::feature_registry registry;
         auto g = registry.global.declare<bool>("g", "Global flag");
         auto o = registry.object.declare<bool>("o", "Object flag");
-
-        vulcan::store_config minmax;
-        minmax.add_listeners(g, {vulcan::listeners::global::MinMax()});
-        TEST_ASSERT(construction_throws(registry, minmax), "MinMax on bool should be rejected");
 
         vulcan::store_config percentile;
         percentile.add_listeners(g, {vulcan::listeners::global::RollingPercentile(4)});
