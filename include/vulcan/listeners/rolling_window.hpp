@@ -6,9 +6,9 @@
 
 namespace vulcan {
 
-class ObjectRollingWindowRuntime : public RuntimeListener {
+class RollingWindowRuntime : public RuntimeListener {
 public:
-    ObjectRollingWindowRuntime(int w) : window(w) {}
+    RollingWindowRuntime(int w) : window(w) {}
 
     void on_update(int64_t obj_id, double val) override { get_stats(obj_id).update(val, window); }
     void on_update(int64_t obj_id, int64_t val) override { get_stats(obj_id).update_i64(val, window); }

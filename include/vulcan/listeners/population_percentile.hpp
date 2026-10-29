@@ -6,9 +6,9 @@
 
 namespace vulcan {
 
-class ObjectPopulationPercentileRuntime : public RuntimeListener {
+class PopulationPercentileRuntime : public RuntimeListener {
 public:
-    ObjectPopulationPercentileRuntime() {}
+    PopulationPercentileRuntime() {}
 
     void on_update(int64_t obj_id, double val) override { update_impl(obj_id, val); }
     void on_update(int64_t obj_id, int64_t val) override { update_impl(obj_id, static_cast<double>(val)); }

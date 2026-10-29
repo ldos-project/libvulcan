@@ -7,9 +7,9 @@
 
 namespace vulcan {
 
-class ObjectRollingPercentileRuntime : public RuntimeListener {
+class RollingPercentileRuntime : public RuntimeListener {
 public:
-    ObjectRollingPercentileRuntime(int w) : window(w) {}
+    RollingPercentileRuntime(int w) : window(w) {}
 
     void on_update(int64_t obj_id, double val) override { get_stats(obj_id).update(val, window); }
     void on_update(int64_t obj_id, int64_t val) override { get_stats(obj_id).update(static_cast<double>(val), window); }

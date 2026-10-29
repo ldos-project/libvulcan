@@ -11,12 +11,12 @@
 
 namespace vulcan {
 
-class ObjectEWMARuntime : public RuntimeListener {
+class EWMARuntime : public RuntimeListener {
 public:
-    ObjectEWMARuntime(std::initializer_list<double> alphas) {
+    EWMARuntime(std::initializer_list<double> alphas) {
         for (double a : alphas) this->alphas.push_back(round_alpha(a));
     }
-    ObjectEWMARuntime(const std::vector<double>& alphas) {
+    EWMARuntime(const std::vector<double>& alphas) {
         for (double a : alphas) this->alphas.push_back(round_alpha(a));
     }
 

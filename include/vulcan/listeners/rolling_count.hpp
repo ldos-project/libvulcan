@@ -7,9 +7,9 @@
 
 namespace vulcan {
 
-class ObjectRollingCountRuntime : public RuntimeListener {
+class RollingCountRuntime : public RuntimeListener {
 public:
-    ObjectRollingCountRuntime(int w) : window(w) {}
+    RollingCountRuntime(int w) : window(w) {}
 
     void on_update(int64_t obj_id, double val) override { 
         throw std::invalid_argument("RollingCount listener only supports integer features."); 

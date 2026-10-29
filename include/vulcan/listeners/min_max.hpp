@@ -7,9 +7,9 @@
 
 namespace vulcan {
 
-class ObjectMinMaxRuntime : public RuntimeListener {
+class MinMaxRuntime : public RuntimeListener {
 public:
-    ObjectMinMaxRuntime() {}
+    MinMaxRuntime() {}
 
     void on_update(int64_t obj_id, double val) override { get_stats(obj_id).update(val); }
     void on_update(int64_t obj_id, int64_t val) override { get_stats(obj_id).update(static_cast<double>(val)); }
