@@ -13,7 +13,9 @@ static void init_listeners(feature_store::feature_data& data, const feature_desc
     for (const auto& config : listeners) {
         if (!seen.insert(config.index()).second)
             throw std::runtime_error("Duplicate listener type attached to the same feature");
-        data.listeners.push_back(std::visit([](const auto& c) { return make_listener(c); }, config));
+    }
+    for (const auto& config : listeners) {
+        data.listeners.push_back(std::visit([&](const auto& c) { return make_listener(c, desc.type); }, config));
     }
 }
 
