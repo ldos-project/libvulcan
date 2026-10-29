@@ -8,8 +8,8 @@ public:
     vulcan::feature_handle<int64_t> var2;
 
     TestFixture() {
-        var1 = registry.global.declare_f64("var1", "Test Double Variable");
-        var2 = registry.global.declare_i64("var2", "Test Int Variable");
+        var1 = registry.global.declare<double>("var1", "Test Double Variable");
+        var2 = registry.global.declare<int64_t>("var2", "Test Int Variable");
     }
 
     vulcan::feature_store create_store(const vulcan::store_config& config) {

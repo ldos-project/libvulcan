@@ -17,50 +17,22 @@ static const char* scope_name(feature_desc::scope_type s) {
     return s == feature_desc::scope_type::global ? "global" : "object";
 }
 
-feature_handle<double> feature_registry::declare_f64(std::string name, std::string description, feature_desc::scope_type scope) {
+int feature_registry::add_feature(std::string name, std::string description, feature_type type, feature_desc::scope_type scope) {
     if (find_by_name(features, name))
         throw std::runtime_error("Feature '" + name + "' already declared");
     feature_desc desc;
     desc.id = next_id++;
-    desc.name = name;
-    desc.description = description;
-    desc.type = feature_type::f64;
+    desc.name = std::move(name);
+    desc.description = std::move(description);
+    desc.type = type;
     desc.scope = scope;
     features.push_back(desc);
-    return {desc.id, name, this};
+    return desc.id;
 }
 
-feature_handle<int64_t> feature_registry::declare_i64(std::string name, std::string description, feature_desc::scope_type scope) {
-    if (find_by_name(features, name))
-        throw std::runtime_error("Feature '" + name + "' already declared");
-    feature_desc desc;
-    desc.id = next_id++;
-    desc.name = name;
-    desc.description = description;
-    desc.type = feature_type::i64;
-    desc.scope = scope;
-    features.push_back(desc);
-    return {desc.id, name, this};
-}
-
-// Feature declaring proxies
-feature_handle<double> feature_registry::GlobalFeatures::declare_f64(std::string name, std::string description) {
-    return r.declare_f64(name, description, feature_desc::scope_type::global);
-}
-feature_handle<int64_t> feature_registry::GlobalFeatures::declare_i64(std::string name, std::string description) {
-    return r.declare_i64(name, description, feature_desc::scope_type::global);
-}
-
-feature_handle<double> feature_registry::ObjectFeatures::declare_f64(std::string name, std::string description) {
-    return r.declare_f64(name, description, feature_desc::scope_type::object);
-}
-feature_handle<int64_t> feature_registry::ObjectFeatures::declare_i64(std::string name, std::string description) {
-    return r.declare_i64(name, description, feature_desc::scope_type::object);
-}
-
-// Lookup proxies — validate name exists and type/scope match
-static const feature_desc& lookup_checked(const std::vector<feature_desc>& features, const std::string& name,
-                                          feature_type want_type, feature_desc::scope_type want_scope) {
+// Validate that the name exists and that its type and scope match the request
+const feature_desc& feature_registry::lookup_checked(const std::string& name, feature_type want_type,
+                                                     feature_desc::scope_type want_scope) const {
     auto* f = find_by_name(features, name);
     if (!f)
         throw std::runtime_error("Feature '" + name + "' not declared in registry");
@@ -70,25 +42,6 @@ static const feature_desc& lookup_checked(const std::vector<feature_desc>& featu
         throw std::runtime_error("Feature '" + name + "' is " + scope_name(f->scope) + "-scoped, requested " + scope_name(want_scope));
     return *f;
 }
-
-feature_handle<double> feature_registry::GlobalFeatures::lookup_f64(const std::string& name) const {
-    const auto& f = lookup_checked(r.features, name, feature_type::f64, feature_desc::scope_type::global);
-    return {f.id, f.name, const_cast<feature_registry*>(&r)};
-}
-feature_handle<int64_t> feature_registry::GlobalFeatures::lookup_i64(const std::string& name) const {
-    const auto& f = lookup_checked(r.features, name, feature_type::i64, feature_desc::scope_type::global);
-    return {f.id, f.name, const_cast<feature_registry*>(&r)};
-}
-feature_handle<double> feature_registry::ObjectFeatures::lookup_f64(const std::string& name) const {
-    const auto& f = lookup_checked(r.features, name, feature_type::f64, feature_desc::scope_type::object);
-    return {f.id, f.name, const_cast<feature_registry*>(&r)};
-}
-feature_handle<int64_t> feature_registry::ObjectFeatures::lookup_i64(const std::string& name) const {
-    const auto& f = lookup_checked(r.features, name, feature_type::i64, feature_desc::scope_type::object);
-    return {f.id, f.name, const_cast<feature_registry*>(&r)};
-}
-
-
 
 std::string feature_registry::generate_policy_prompt() const {
     std::string prompt = "Available Features:\n";

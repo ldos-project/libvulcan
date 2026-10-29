@@ -5,10 +5,10 @@
 extern "C" void vulcan_configure_rank(vulcan::feature_registry& registry,
                                       vulcan::store_config& store_cfg,
                                       vulcan::rank_config& config) {
-    auto system_load    = registry.global.lookup_f64("system_load");
-    auto latency        = registry.object.lookup_f64("latency");
-    auto temp           = registry.object.lookup_i64("temp");
-    auto prev_decisions = registry.global.lookup_i64("prev_decisions");
+    auto system_load    = registry.global.lookup<double>("system_load");
+    auto latency        = registry.object.lookup<double>("latency");
+    auto temp           = registry.object.lookup<int64_t>("temp");
+    auto prev_decisions = registry.global.lookup<int64_t>("prev_decisions");
 
     // EVOLVE-BLOCK-START
     store_cfg.add_listeners(system_load,    {vulcan::listeners::global::RollingWindow(1)});

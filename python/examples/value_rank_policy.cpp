@@ -8,8 +8,8 @@
 extern "C" void vulcan_configure_value(vulcan::feature_registry& registry,
                                        vulcan::store_config& store_cfg,
                                        vulcan::value_config& config) {
-    auto io_queue_depth = registry.global.lookup_f64("io_queue_depth");
-    auto system_iops    = registry.global.lookup_f64("system_iops");
+    auto io_queue_depth = registry.global.lookup<double>("io_queue_depth");
+    auto system_iops    = registry.global.lookup<double>("system_iops");
 
     // EVOLVE-BLOCK-START
     store_cfg.add_listeners(io_queue_depth, {vulcan::listeners::global::RollingWindow(3),
@@ -30,8 +30,8 @@ extern "C" void vulcan_configure_value(vulcan::feature_registry& registry,
 extern "C" void vulcan_configure_rank(vulcan::feature_registry& registry,
                                       vulcan::store_config& store_cfg,
                                       vulcan::rank_config& config) {
-    auto ssd_latency   = registry.object.lookup_f64("ssd_latency");
-    auto ssd_queue_len = registry.object.lookup_i64("ssd_queue_len");
+    auto ssd_latency   = registry.object.lookup<double>("ssd_latency");
+    auto ssd_queue_len = registry.object.lookup<int64_t>("ssd_queue_len");
 
     // EVOLVE-BLOCK-START
     store_cfg.add_listeners(ssd_latency,    {vulcan::listeners::object::RollingWindow(3),

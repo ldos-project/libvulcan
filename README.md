@@ -6,7 +6,7 @@ LibVulcan is a feature registry and decision SDK designed to bridge human-define
 
 ### 1. Human <-> Vulcan (Scaffolding)
 Humans act as the architects who define the environment and capabilities.
-- **Declare Features**: Use `feature_registry::declare_f64` or `declare_i64` to register observable metrics (e.g., RTT, Queue Length).
+- **Declare Features**: Use `registry.global.declare<T>` or `registry.object.declare<T>` (`T` is `double` or `int64_t`) to register observable metrics (e.g., RTT, Queue Length).
 - **Configure Listeners**: Use `add_listeners` to attach processors to features.
     - `RollingWindowProcessor(window)`: Tracks Min, Max, and Avg over a sliding window.
     - `HistoryArray(window)`: Keeps a raw history of recent values.
@@ -16,7 +16,7 @@ Humans act as the architects who define the environment and capabilities.
 Example:
 ```cpp
 vulcan::feature_registry registry;
-auto rtt = registry.declare_f64("rtt", "Round Trip Time");
+auto rtt = registry.global.declare<double>("rtt", "Round Trip Time");
 rtt.add_listeners({vulcan::RollingWindowProcessor(10)});
 
 auto features = vulcan::instantiate_feature_store(registry);

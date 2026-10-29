@@ -79,20 +79,20 @@ PYBIND11_MODULE(_vulcan, m) {
 
     // ---- Registry proxies ------------------------------------------------------
     py::class_<vulcan::feature_registry::GlobalFeatures>(m, "GlobalFeatures")
-        .def("declare_f64", &vulcan::feature_registry::GlobalFeatures::declare_f64,
+        .def("declare_f64", &vulcan::feature_registry::GlobalFeatures::declare<double>,
              py::arg("name"), py::arg("description"))
-        .def("declare_i64", &vulcan::feature_registry::GlobalFeatures::declare_i64,
+        .def("declare_i64", &vulcan::feature_registry::GlobalFeatures::declare<int64_t>,
              py::arg("name"), py::arg("description"))
-        .def("lookup_f64", &vulcan::feature_registry::GlobalFeatures::lookup_f64, py::arg("name"))
-        .def("lookup_i64", &vulcan::feature_registry::GlobalFeatures::lookup_i64, py::arg("name"));
+        .def("lookup_f64", &vulcan::feature_registry::GlobalFeatures::lookup<double>, py::arg("name"))
+        .def("lookup_i64", &vulcan::feature_registry::GlobalFeatures::lookup<int64_t>, py::arg("name"));
 
     py::class_<vulcan::feature_registry::ObjectFeatures>(m, "ObjectFeatures")
-        .def("declare_f64", &vulcan::feature_registry::ObjectFeatures::declare_f64,
+        .def("declare_f64", &vulcan::feature_registry::ObjectFeatures::declare<double>,
              py::arg("name"), py::arg("description"))
-        .def("declare_i64", &vulcan::feature_registry::ObjectFeatures::declare_i64,
+        .def("declare_i64", &vulcan::feature_registry::ObjectFeatures::declare<int64_t>,
              py::arg("name"), py::arg("description"))
-        .def("lookup_f64", &vulcan::feature_registry::ObjectFeatures::lookup_f64, py::arg("name"))
-        .def("lookup_i64", &vulcan::feature_registry::ObjectFeatures::lookup_i64, py::arg("name"));
+        .def("lookup_f64", &vulcan::feature_registry::ObjectFeatures::lookup<double>, py::arg("name"))
+        .def("lookup_i64", &vulcan::feature_registry::ObjectFeatures::lookup<int64_t>, py::arg("name"));
 
     py::class_<vulcan::feature_registry>(m, "FeatureRegistry")
         .def(py::init<>())

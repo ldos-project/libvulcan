@@ -13,16 +13,16 @@ int main() {
     vulcan::store_config config;
     
     // 1. Global Feature with Percentile History
-    auto global_feat = registry.global.declare_f64("g_load", "Global Load");
+    auto global_feat = registry.global.declare<double>("g_load", "Global Load");
     // Window of 100
     config.add_listeners(global_feat, {vulcan::listeners::global::RollingPercentile(100)});
 
     // 2. Object Feature with Population Distribution
-    auto obj_feat = registry.object.declare_f64("o_temp", "Object Temp");
+    auto obj_feat = registry.object.declare<double>("o_temp", "Object Temp");
     config.add_listeners(obj_feat, {vulcan::listeners::object::PopulationPercentile()});
 
     // 3. Object Feature with Both Percentiles
-    auto obj_combined_feat = registry.object.declare_f64("o_comb", "Object Combined");
+    auto obj_combined_feat = registry.object.declare<double>("o_comb", "Object Combined");
     config.add_listeners(obj_combined_feat, {
         vulcan::listeners::object::RollingPercentile(100),
         vulcan::listeners::object::PopulationPercentile()

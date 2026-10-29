@@ -5,7 +5,7 @@ int main() {
     vulcan_test::run_test("RollingWindow - Global", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto var1 = registry.global.declare_f64("var1", "Test feature");
+        auto var1 = registry.global.declare<double>("var1", "Test feature");
         config.add_listeners(var1, {vulcan::listeners::global::RollingWindow(5)});
 
         auto features = vulcan::instantiate_feature_store(registry, config);
@@ -28,7 +28,7 @@ int main() {
         vulcan::feature_registry registry;
         
         // Declare object features
-        auto obj_val = registry.object.declare_f64("obj_val", "Object specific value");
+        auto obj_val = registry.object.declare<double>("obj_val", "Object specific value");
         
         // Add listeners
         vulcan::store_config config;
@@ -54,7 +54,7 @@ int main() {
     vulcan_test::run_test("RollingWindow - Global i64", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto var1 = registry.global.declare_i64("var1_i64", "Test i64 feature");
+        auto var1 = registry.global.declare<int64_t>("var1_i64", "Test i64 feature");
         config.add_listeners(var1, {vulcan::listeners::global::RollingWindow(5)});
 
         auto features = vulcan::instantiate_feature_store(registry, config);
@@ -72,7 +72,7 @@ int main() {
     vulcan_test::run_test("RollingWindow - Global i64 large values", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto var1 = registry.global.declare_i64("big_i64", "Large i64 feature");
+        auto var1 = registry.global.declare<int64_t>("big_i64", "Large i64 feature");
         config.add_listeners(var1, {vulcan::listeners::global::RollingWindow(3)});
 
         auto features = vulcan::instantiate_feature_store(registry, config);
@@ -88,7 +88,7 @@ int main() {
 
     vulcan_test::run_test("RollingWindow - Object i64", []() {
         vulcan::feature_registry registry;
-        auto obj_val = registry.object.declare_i64("obj_i64", "Object i64 feature");
+        auto obj_val = registry.object.declare<int64_t>("obj_i64", "Object i64 feature");
 
         vulcan::store_config config;
         config.add_listeners(obj_val, {vulcan::listeners::object::RollingWindow(3)});
@@ -110,8 +110,8 @@ int main() {
 
     vulcan_test::run_test("RollingWindow - Object window=0 (unbounded)", []() {
         vulcan::feature_registry registry;
-        auto obj_val = registry.object.declare_f64("obj_f64_w0", "Object f64 unbounded window");
-        auto obj_i64 = registry.object.declare_i64("obj_i64_w0", "Object i64 unbounded window");
+        auto obj_val = registry.object.declare<double>("obj_f64_w0", "Object f64 unbounded window");
+        auto obj_i64 = registry.object.declare<int64_t>("obj_i64_w0", "Object i64 unbounded window");
 
         vulcan::store_config config;
         config.add_listeners(obj_val, {vulcan::listeners::object::RollingWindow(0)});

@@ -7,8 +7,8 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
 
-        auto global_decisions = registry.global.declare_i64("recent_decisions", "Global Tracking");
-        auto user_decisions   = registry.object.declare_i64("user_decisions", "Object Tracking");
+        auto global_decisions = registry.global.declare<int64_t>("recent_decisions", "Global Tracking");
+        auto user_decisions   = registry.object.declare<int64_t>("user_decisions", "Object Tracking");
 
         // Track last 3 global decisions
         config.add_listeners(global_decisions, {vulcan::listeners::global::RollingCount(3)});
@@ -37,7 +37,7 @@ int main() {
 
     vulcan_test::run_test("RollingCount - Object", []() {
         vulcan::feature_registry registry;
-        auto user_decisions   = registry.object.declare_i64("user_decisions", "Object Tracking");
+        auto user_decisions   = registry.object.declare<int64_t>("user_decisions", "Object Tracking");
 
         vulcan::store_config config;
 

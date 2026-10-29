@@ -33,11 +33,11 @@ int main() {
     vulcan::feature_registry registry;
 
     // setup of global + per object features
-    auto system_load = registry.global.declare_f64("system_load", "Current system load average");
-    auto cpu_usage   = registry.global.declare_f64("cpu_usage", "CPU usage %");
-    auto latency = registry.object.declare_f64("latency", "Avg latency (ms)");
-    auto temp    = registry.object.declare_i64("temp", "Drive temperature (C)");
-    auto prev_decisions = registry.global.declare_i64("prev_decisions", "SSDs chosen for previous decisions.");
+    auto system_load = registry.global.declare<double>("system_load", "Current system load average");
+    auto cpu_usage   = registry.global.declare<double>("cpu_usage", "CPU usage %");
+    auto latency = registry.object.declare<double>("latency", "Avg latency (ms)");
+    auto temp    = registry.object.declare<int64_t>("temp", "Drive temperature (C)");
+    auto prev_decisions = registry.global.declare<int64_t>("prev_decisions", "SSDs chosen for previous decisions.");
 
     vulcan::store_config store_cfg;
     vulcan::rank_config config;

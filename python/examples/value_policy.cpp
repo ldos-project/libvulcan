@@ -6,8 +6,8 @@
 extern "C" void vulcan_configure_value(vulcan::feature_registry& registry,
                                        vulcan::store_config& store_cfg,
                                        vulcan::value_config& config) {
-    auto rtt       = registry.global.lookup_f64("rtt");
-    auto queue_len = registry.global.lookup_i64("queue_len");
+    auto rtt       = registry.global.lookup<double>("rtt");
+    auto queue_len = registry.global.lookup<int64_t>("queue_len");
 
     // EVOLVE-BLOCK-START
     store_cfg.add_listeners(rtt,       {vulcan::listeners::global::RollingWindow(5), vulcan::listeners::global::MinMax()});

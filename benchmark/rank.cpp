@@ -25,10 +25,10 @@ int main(int argc, char* argv[]) {
     std::cout << "Running benchmark with TOTAL_OBJECTS=" << TOTAL_OBJECTS << " and TOTAL_NUM_REQUESTS=" << TOTAL_NUM_REQUESTS << (disable_listeners ? " (Listeners disabled)" : "") << std::endl;
 
     vulcan::feature_registry registry;
-    auto f_1 = registry.object.declare_f64("f_1", "Feature 1");
-    auto f_2 = registry.object.declare_f64("f_2", "Feature 2");
-    auto f_3 = registry.object.declare_f64("f_3", "Feature 3");
-    auto f_4 = registry.object.declare_f64("f_4", "Feature 4");
+    auto f_1 = registry.object.declare<double>("f_1", "Feature 1");
+    auto f_2 = registry.object.declare<double>("f_2", "Feature 2");
+    auto f_3 = registry.object.declare<double>("f_3", "Feature 3");
+    auto f_4 = registry.object.declare<double>("f_4", "Feature 4");
 
     vulcan::store_config store_cfg;
     vulcan::rank_config config;

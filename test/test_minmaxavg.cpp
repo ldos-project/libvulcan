@@ -6,7 +6,7 @@ int main() {
         // Configure for MAX tracking on var1 with window 5
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto var1 = registry.global.declare_f64("var1", "Test feature");
+        auto var1 = registry.global.declare<double>("var1", "Test feature");
         config.add_listeners(var1, {vulcan::listeners::global::MinMax(), vulcan::listeners::global::Average()});
         
         auto features = vulcan::instantiate_feature_store(registry, config);
