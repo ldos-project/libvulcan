@@ -6,6 +6,8 @@
 
 #include "vulcan.h"
 
+VULCAN_GROUP(cached_obj, "Cached objects");
+
 int main(int argc, char* argv[]) {
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " <N_OBJECTS> <K_OPERATIONS>\n";
@@ -25,13 +27,14 @@ int main(int argc, char* argv[]) {
     std::cout << "Running benchmark with TOTAL_OBJECTS=" << TOTAL_OBJECTS << " and TOTAL_NUM_REQUESTS=" << TOTAL_NUM_REQUESTS << (disable_listeners ? " (Listeners disabled)" : "") << std::endl;
 
     vulcan::feature_registry registry;
-    auto f_1 = registry.object.declare<double>("f_1", "Feature 1");
-    auto f_2 = registry.object.declare<double>("f_2", "Feature 2");
-    auto f_3 = registry.object.declare<double>("f_3", "Feature 3");
-    auto f_4 = registry.object.declare<double>("f_4", "Feature 4");
+    registry.declare_group<cached_obj>();
+    auto f_1 = registry.declare<double, cached_obj>("f_1", "Feature 1");
+    auto f_2 = registry.declare<double, cached_obj>("f_2", "Feature 2");
+    auto f_3 = registry.declare<double, cached_obj>("f_3", "Feature 3");
+    auto f_4 = registry.declare<double, cached_obj>("f_4", "Feature 4");
 
     vulcan::store_config store_cfg;
-    vulcan::rank_config config;
+    vulcan::rank_config<cached_obj> config;
 
     if (!disable_listeners) {
         store_cfg.add_listeners(f_1, {vulcan::listeners::RollingWindow(1)});
@@ -40,12 +43,12 @@ int main(int argc, char* argv[]) {
         store_cfg.add_listeners(f_4, {vulcan::listeners::RollingWindow(1)});
     }
 
-    auto scoring_fn = [&](const vulcan::feature_store& fs, int64_t obj_id) -> double {
+    auto scoring_fn = [&](const vulcan::feature_store& fs, cached_obj o) -> double {
         if (disable_listeners) {
-            return static_cast<double>(obj_id);
+            return 0.0;   // no features to read; measures ranking cost alone
         }
-        double val_4 = fs.get_latest(f_4, obj_id);
-        double val_3 = fs.get_latest(f_3, obj_id);
+        double val_4 = fs.get_latest(f_4, o);
+        double val_3 = fs.get_latest(f_3, o);
         return val_4 + val_3;
     };
 
@@ -54,7 +57,7 @@ int main(int argc, char* argv[]) {
     config.set_comparator(vulcan::min);
 
     auto store = vulcan::make_shared_feature_store(registry, store_cfg);
-    auto policy = std::make_unique<vulcan::rank_policy>(vulcan::instantiate_rank_policy(registry, config, store));
+    auto policy = std::make_unique<vulcan::rank_policy<cached_obj>>(vulcan::instantiate_rank_policy(registry, config, store));
 
     std::mt19937 rng(42);
     std::uniform_int_distribution<int> obj_dist(1, TOTAL_OBJECTS * 2);
@@ -68,19 +71,19 @@ int main(int argc, char* argv[]) {
     auto start_time = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < TOTAL_NUM_REQUESTS; ++i) {
-        int64_t obj_id = obj_dist(rng);
+        cached_obj o{obj_dist(rng)};
 
         if (num_objects >= TOTAL_OBJECTS) {
-            int64_t victim_id = vulcan::decision(*policy);
-            policy->remove_object(victim_id);
+            cached_obj victim = *vulcan::decision(*policy);
+            policy->remove_object(victim);
             num_objects--;
         }
 
-        policy->add_object(obj_id);
-        store->update(f_1, obj_id, lat_dist(rng));
-        store->update(f_2, obj_id, size_dist(rng));
-        store->update(f_3, obj_id, static_cast<double>(i));
-        store->update(f_4, obj_id, 1.0);
+        policy->add_object(o);
+        store->update(f_1, o, lat_dist(rng));
+        store->update(f_2, o, size_dist(rng));
+        store->update(f_3, o, static_cast<double>(i));
+        store->update(f_4, o, 1.0);
 
         num_objects++;
     }

@@ -9,8 +9,8 @@ namespace vulcan {
 
 class store_config {
 public:
-    template <typename T>
-    void add_listeners(feature_handle<T> h, const std::vector<ListenerConfig>& listeners) {
+    template <typename T, typename G>
+    void add_listeners(feature_handle<T, G> h, const std::vector<ListenerConfig>& listeners) {
         auto& current = listeners_[h.id];
         current.insert(current.end(), listeners.begin(), listeners.end());
     }

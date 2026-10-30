@@ -13,6 +13,7 @@
 #include <functional>
 #include <sstream>
 #include <memory>
+#include <optional>
 
 namespace vulcan {
 
@@ -27,9 +28,11 @@ namespace rank {
 inline bool max(double a, double b) { return a > b; }
 inline bool min(double a, double b) { return a < b; }
 
+// A rank policy chooses one member of object group G: it scores candidates and returns the best.
+template <typename G>
 class rank_config : public policy_config {
 public:
-    using scoring_fn_t = std::function<double(const feature_store&, int64_t)>;
+    using scoring_fn_t = std::function<double(const feature_store&, G)>;
     using comparator_t = std::function<bool(double, double)>;
 
     void set_sorting_function(rank::Mechanism mech) { sorting_function_ = mech; }
@@ -46,27 +49,28 @@ private:
     comparator_t comparator_ = max; // Default to Maximize score
 };
 
+template <typename G>
 class rank_policy {
 public:
-    rank_policy(const feature_registry& registry, const rank_config& config,
+    rank_policy(const feature_registry& registry, const rank_config<G>& config,
                 std::shared_ptr<feature_store> store)
         : registry_(registry), store_(std::move(store)), config_(config) {}
 
     feature_store& get_feature_store() { return *store_; }
     const feature_store& get_feature_store() const { return *store_; }
 
-    void add_object(int64_t obj_id) {
-        if (object_indices_.find(obj_id) == object_indices_.end()) {
-            object_indices_[obj_id] = object_vector_.size();
-            object_vector_.push_back(obj_id);
+    void add_object(G obj) {
+        if (object_indices_.find(obj) == object_indices_.end()) {
+            object_indices_[obj] = object_vector_.size();
+            object_vector_.push_back(obj);
         }
     }
 
-    void remove_object(int64_t obj_id) {
-        auto it = object_indices_.find(obj_id);
+    void remove_object(G obj) {
+        auto it = object_indices_.find(obj);
         if (it != object_indices_.end()) {
             size_t idx = it->second;
-            int64_t last_obj = object_vector_.back();
+            G last_obj = object_vector_.back();
 
             object_vector_[idx] = last_obj;
             object_indices_[last_obj] = idx;
@@ -76,7 +80,7 @@ public:
         }
     }
 
-    std::vector<std::pair<int64_t, double>> rank_candidates() {
+    std::vector<std::pair<G, double>> rank_candidates() {
         if (object_vector_.empty()) return {};
 
         auto mech = config_.get_sorting_function();
@@ -88,10 +92,10 @@ public:
             return {};
         }
 
-        std::vector<std::pair<int64_t, double>> scores;
+        std::vector<std::pair<G, double>> scores;
 
         // Snapshot candidates
-        std::vector<int64_t> candidates;
+        std::vector<G> candidates;
         if (mech == rank::FullSort) {
             candidates = object_vector_;
         } else if (mech == rank::SampleSort) {
@@ -106,9 +110,9 @@ public:
 
         // Score Phase
         scores.reserve(candidates.size());
-        for (int64_t id : candidates) {
-            double score = scorer(*store_, id);
-            scores.push_back({id, score});
+        for (G obj : candidates) {
+            double score = scorer(*store_, obj);
+            scores.push_back({obj, score});
         }
 
         // Sort using comparator
@@ -118,9 +122,10 @@ public:
         return scores;
     }
 
-    int64_t decide() {
+    // The best-scoring candidate, or nothing if there are no candidates
+    std::optional<G> decide() {
         auto scores = rank_candidates();
-        if (scores.empty()) return -1;
+        if (scores.empty()) return std::nullopt;
         return scores.front().first;
     }
 
@@ -185,8 +190,8 @@ public:
         ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::RollingWindow(5)});\n";
         ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::RollingPercentile(100)});\n\n";
         ss << "2. Scoring function — this IS your heuristic. Called once per candidate, returns a scalar. Vulcan ranks all candidates by this score and selects the winner via your comparator.\n";
-        ss << "     auto fn = [&](const vulcan::feature_store& fs, int64_t obj_id) -> double {\n";
-        ss << "         // per-object: fs.get_latest(handle, obj_id), fs.get_window_avg(handle, obj_id), ...\n";
+        ss << "     auto fn = [&](const vulcan::feature_store& fs, " << group_traits<G>::name << " obj) -> double {\n";
+        ss << "         // per-object: fs.get_latest(handle, obj), fs.get_window_avg(handle, obj), ...\n";
         ss << "         // global:     fs.get_latest(handle), fs.get_temporal_percentile(handle, 0.95), ...\n";
         ss << "         return <score>;\n";
         ss << "     };\n";
@@ -202,16 +207,16 @@ public:
 private:
     const feature_registry& registry_;
     std::shared_ptr<feature_store> store_;
-    rank_config config_;
-    std::vector<int64_t> object_vector_;
-    std::unordered_map<int64_t, size_t> object_indices_;
+    rank_config<G> config_;
+    std::vector<G> object_vector_;
+    std::unordered_map<G, size_t> object_indices_;
     std::mt19937 rng_{std::random_device{}()};
 
-    std::vector<int64_t> sample_unique(size_t k) {
+    std::vector<G> sample_unique(size_t k) {
         std::uniform_int_distribution<size_t> dist(0, object_vector_.size() - 1);
         size_t picked[5];
         size_t n = 0;
-        std::vector<int64_t> result;
+        std::vector<G> result;
         result.reserve(k);
         while (n < k) {
             size_t idx = dist(rng_);
@@ -227,12 +232,14 @@ private:
     }
 };
 
-inline rank_policy instantiate_rank_policy(const feature_registry& registry, const rank_config& config,
-                                           std::shared_ptr<feature_store> store) {
-    return rank_policy(registry, config, std::move(store));
+template <typename G>
+rank_policy<G> instantiate_rank_policy(const feature_registry& registry, const rank_config<G>& config,
+                                       std::shared_ptr<feature_store> store) {
+    return rank_policy<G>(registry, config, std::move(store));
 }
 
-inline int64_t decision(rank_policy& r) {
+template <typename G>
+std::optional<G> decision(rank_policy<G>& r) {
     return r.decide();
 }
 

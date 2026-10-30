@@ -6,7 +6,7 @@ int main() {
         // Configure for MAX tracking on var1 with window 5
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto var1 = registry.global.declare<double>("var1", "Test feature");
+        auto var1 = registry.declare<double>("var1", "Test feature");
         config.add_listeners(var1, {vulcan::listeners::MinMax(), vulcan::listeners::Average()});
         
         auto features = vulcan::instantiate_feature_store(registry, config);
@@ -32,7 +32,7 @@ int main() {
     vulcan_test::run_test("Int64 - MinMax is exact beyond 2^53", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto n = registry.global.declare<int64_t>("n", "Large integer");
+        auto n = registry.declare<int64_t>("n", "Large integer");
         config.add_listeners(n, {vulcan::listeners::MinMax()});
         auto features = vulcan::instantiate_feature_store(registry, config);
 

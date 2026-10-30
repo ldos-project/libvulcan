@@ -13,6 +13,8 @@
 #include <vector>
 #include <string>
 
+VULCAN_GROUP(ssd, "SSDs that can serve a read");
+
 // --- Simulated environment ---
 double get_io_queue_depth(int t) {
     return (t % 2 == 0) ? 80.0 + t * 5.0 : 20.0 - t * 2.0;
@@ -43,14 +45,15 @@ int get_ssd_queue_len(int ssd_id, int t) {
 int main() {
     vulcan::feature_registry registry;
 
-    auto io_queue_depth = registry.global.declare<double>("io_queue_depth", "Pending I/O requests in the system queue");
-    auto system_iops    = registry.global.declare<double>("system_iops", "Current system-wide IOPS throughput");
-    auto ssd_latency    = registry.object.declare<double>("ssd_latency", "Read latency in ms for this SSD");
-    auto ssd_queue_len  = registry.object.declare<int64_t>("ssd_queue_len", "Pending requests queued for this SSD");
+    auto io_queue_depth = registry.declare<double>("io_queue_depth", "Pending I/O requests in the system queue");
+    auto system_iops    = registry.declare<double>("system_iops", "Current system-wide IOPS throughput");
+    registry.declare_group<ssd>();
+    auto ssd_latency    = registry.declare<double, ssd>("ssd_latency", "Read latency in ms for this SSD");
+    auto ssd_queue_len  = registry.declare<int64_t, ssd>("ssd_queue_len", "Pending requests queued for this SSD");
 
     vulcan::store_config store_cfg;
     vulcan::value_config vcfg;
-    vulcan::rank_config rcfg;
+    vulcan::rank_config<ssd> rcfg;
 
     // EVOLVE-BLOCK-START
     store_cfg.add_listeners(io_queue_depth, {vulcan::listeners::RollingWindow(3), vulcan::listeners::EWMA({0.3})});
@@ -66,7 +69,7 @@ int main() {
         return 1.0;
     });
 
-    rcfg.set_scoring_fn([&](const vulcan::feature_store& fs, int64_t obj_id) -> double {
+    rcfg.set_scoring_fn([&](const vulcan::feature_store& fs, ssd obj_id) -> double {
         double lat_ewma = fs.get_ewma(ssd_latency, obj_id, 0.5);
         int64_t qlen    = fs.get_latest(ssd_queue_len, obj_id);
         return lat_ewma + qlen * 2.0;
@@ -90,7 +93,7 @@ int main() {
     auto rank_pol  = vulcan::instantiate_rank_policy(registry, rcfg, store);
 
     std::vector<int> ssds = {1, 2, 3};
-    for (int id : ssds) rank_pol.add_object(id);
+    for (int id : ssds) rank_pol.add_object(ssd{id});
 
     std::cout << value_pol.get_prompt() << "\n";
     std::cout << rank_pol.get_prompt() << "\n";
@@ -100,8 +103,8 @@ int main() {
         if (store->has_listeners(system_iops))    store->update(system_iops, get_system_iops(t));
 
         for (int ssd_id : ssds) {
-            if (store->has_listeners(ssd_latency))   store->update(ssd_latency, ssd_id, get_ssd_latency(ssd_id, t));
-            if (store->has_listeners(ssd_queue_len)) store->update(ssd_queue_len, ssd_id, static_cast<int64_t>(get_ssd_queue_len(ssd_id, t)));
+            if (store->has_listeners(ssd_latency))   store->update(ssd_latency, ssd{ssd_id}, get_ssd_latency(ssd_id, t));
+            if (store->has_listeners(ssd_queue_len)) store->update(ssd_queue_len, ssd{ssd_id}, static_cast<int64_t>(get_ssd_queue_len(ssd_id, t)));
         }
 
         double action = value_pol.decide();
@@ -109,7 +112,7 @@ int main() {
         if (action < 0.5) {
             std::cout << "[t=" << t << "]  Decision: WAIT (queue saturated / low IOPS)\n";
         } else {
-            int64_t best_ssd = vulcan::decision(rank_pol);
+            int64_t best_ssd = static_cast<int64_t>(*vulcan::decision(rank_pol));
             std::cout << "[t=" << t << "]  Decision: READ -> SSD " << best_ssd << "\n";
         }
     }

@@ -3,6 +3,8 @@
 #include "vulcan.h"
 #include "test_utils.hpp"
 
+VULCAN_GROUP(obj, "Test objects");
+
 // Simple approx check
 bool approx(double a, double b, double eps = 0.001) {
     return std::abs(a - b) < eps;
@@ -13,16 +15,17 @@ int main() {
     vulcan::store_config config;
     
     // 1. Global Feature with Percentile History
-    auto global_feat = registry.global.declare<double>("g_load", "Global Load");
+    auto global_feat = registry.declare<double>("g_load", "Global Load");
     // Window of 100
     config.add_listeners(global_feat, {vulcan::listeners::RollingPercentile(100)});
 
     // 2. Object Feature with Population Distribution
-    auto obj_feat = registry.object.declare<double>("o_temp", "Object Temp");
+    registry.declare_group<obj>();
+    auto obj_feat = registry.declare<double, obj>("o_temp", "Object Temp");
     config.add_listeners(obj_feat, {vulcan::listeners::PopulationPercentile()});
 
     // 3. Object Feature with Both Percentiles
-    auto obj_combined_feat = registry.object.declare<double>("o_comb", "Object Combined");
+    auto obj_combined_feat = registry.declare<double, obj>("o_comb", "Object Combined");
     config.add_listeners(obj_combined_feat, {
         vulcan::listeners::RollingPercentile(100),
         vulcan::listeners::PopulationPercentile()
@@ -65,9 +68,9 @@ int main() {
         // Obj 1: 10
         // Obj 2: 20
         // Obj 3: 30
-        store.update(obj_feat, 1, 10.0);
-        store.update(obj_feat, 2, 20.0);
-        store.update(obj_feat, 3, 30.0);
+        store.update(obj_feat, obj{1}, 10.0);
+        store.update(obj_feat, obj{2}, 20.0);
+        store.update(obj_feat, obj{3}, 30.0);
 
         // Median should be 20
         double dist_p50 = store.get_pop_percentile(obj_feat, 0.5);
@@ -76,7 +79,7 @@ int main() {
         // Update Obj 1: 10 -> 100
         // New state: 20, 30, 100
         // Median should be 30
-        store.update(obj_feat, 1, 100.0);
+        store.update(obj_feat, obj{1}, 100.0);
         
         dist_p50 = store.get_pop_percentile(obj_feat, 0.5);
         TEST_ASSERT(approx(dist_p50, 30.0), "Population P50 after update should be 30, got " + std::to_string(dist_p50));
@@ -84,23 +87,23 @@ int main() {
         // Add Obj 4: 5
         // State: 5, 20, 30, 100
         // Median (0.5 * 3 = 1.5 -> idx 1) -> 20
-        store.update(obj_feat, 4, 5.0);
+        store.update(obj_feat, obj{4}, 5.0);
         dist_p50 = store.get_pop_percentile(obj_feat, 0.5);
         TEST_ASSERT(approx(dist_p50, 20.0), "Population P50 (4 items) should be 20, got " + std::to_string(dist_p50));
     });
 
     vulcan_test::run_test("Combined Object Percentiles (Rolling + Population)", [&]() {
         // Emit values
-        store.update(obj_combined_feat, 1, 10.0);
-        store.update(obj_combined_feat, 2, 20.0);
-        store.update(obj_combined_feat, 1, 50.0);
+        store.update(obj_combined_feat, obj{1}, 10.0);
+        store.update(obj_combined_feat, obj{2}, 20.0);
+        store.update(obj_combined_feat, obj{1}, 50.0);
 
         // Object 1 history [10.0, 50.0], P50 is 10.0 or 50.0
-        double obj1_p50 = store.get_temporal_percentile(obj_combined_feat, 1, 0.5);
+        double obj1_p50 = store.get_temporal_percentile(obj_combined_feat, obj{1}, 0.5);
         TEST_ASSERT(approx(obj1_p50, 10.0) || approx(obj1_p50, 50.0), "Obj1 Rolling P50 should be 10 or 50, got " + std::to_string(obj1_p50));
 
         // Object 2 history [20.0], P50 is 20.0
-        double obj2_p50 = store.get_temporal_percentile(obj_combined_feat, 2, 0.5);
+        double obj2_p50 = store.get_temporal_percentile(obj_combined_feat, obj{2}, 0.5);
         TEST_ASSERT(approx(obj2_p50, 20.0), "Obj2 Rolling P50 should be 20, got " + std::to_string(obj2_p50));
 
         // Population: Latest values are Obj1: 50.0, Obj2: 20.0
@@ -108,9 +111,9 @@ int main() {
         TEST_ASSERT(approx(pop_p50, 20.0) || approx(pop_p50, 50.0), "Population P50 should be 20 or 50, got " + std::to_string(pop_p50));
 
         // Add 100 to Obj1
-        store.update(obj_combined_feat, 1, 100.0);
+        store.update(obj_combined_feat, obj{1}, 100.0);
         // Obj1 history: 10, 50, 100. P50
-        obj1_p50 = store.get_temporal_percentile(obj_combined_feat, 1, 0.5);
+        obj1_p50 = store.get_temporal_percentile(obj_combined_feat, obj{1}, 0.5);
         TEST_ASSERT(approx(obj1_p50, 50.0) || approx(obj1_p50, 100.0), "Obj1 Rolling P50 should be 50 or 100, got " + std::to_string(obj1_p50));
 
         // Population: Obj1: 100.0, Obj2: 20.0

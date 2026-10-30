@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 
+VULCAN_GROUP(ssd, "SSDs that can serve an I/O request");
+
 void* get_request(){
     return nullptr;
 }
@@ -25,33 +27,34 @@ int get_ssd_temp(const int ssd_id, const int t){
     else return 90 - (t * 10); // gets better over time
 }
 
-void dispatch_io(int t, int64_t best_id, void* request){
-    std::cout << "[t= " << t << "]  Dispatching I/O request to drive: " << best_id << "\n";
+void dispatch_io(int t, ssd best, void* request){
+    std::cout << "[t= " << t << "]  Dispatching I/O request to drive: " << static_cast<int64_t>(best) << "\n";
 }
 
 int main() {
     vulcan::feature_registry registry;
 
     // setup of global + per object features
-    auto system_load = registry.global.declare<double>("system_load", "Current system load average");
-    auto cpu_usage   = registry.global.declare<double>("cpu_usage", "CPU usage %");
-    auto latency = registry.object.declare<double>("latency", "Avg latency (ms)");
-    auto temp    = registry.object.declare<int64_t>("temp", "Drive temperature (C)");
-    auto prev_decisions = registry.global.declare<int64_t>("prev_decisions", "SSDs chosen for previous decisions.");
+    auto system_load = registry.declare<double>("system_load", "Current system load average");
+    auto cpu_usage   = registry.declare<double>("cpu_usage", "CPU usage %");
+    registry.declare_group<ssd>();
+    auto latency = registry.declare<double, ssd>("latency", "Avg latency (ms)");
+    auto temp    = registry.declare<int64_t, ssd>("temp", "Drive temperature (C)");
+    auto chosen_last = registry.declare<bool, ssd>("chosen_last", "Whether this SSD served the previous request");
 
     vulcan::store_config store_cfg;
-    vulcan::rank_config config;
+    vulcan::rank_config<ssd> config;
 
     // EVOLVE-BLOCK-START
     store_cfg.add_listeners(system_load, {vulcan::listeners::RollingWindow(1), vulcan::listeners::RollingPercentile(100)});
     store_cfg.add_listeners(latency, {vulcan::listeners::RollingWindow(5)});
     store_cfg.add_listeners(temp, {vulcan::listeners::RollingWindow(5)});
-    store_cfg.add_listeners(prev_decisions, {vulcan::listeners::RollingWindow(1)});
-    auto scoring_fn = [&](const vulcan::feature_store& fs, int64_t obj_id) -> double {
+    store_cfg.add_listeners(chosen_last, {vulcan::listeners::RollingWindow(1)});
+    auto scoring_fn = [&](const vulcan::feature_store& fs, ssd obj_id) -> double {
         double l = fs.get_latest(latency, obj_id);
         double t = fs.get_latest(temp, obj_id);
         auto score = l + t;
-        if(fs.get_latest(prev_decisions) != obj_id) return score += 20; // SSD switching overhead
+        if(!fs.get_latest(chosen_last, obj_id)) return score += 20; // SSD switching overhead
         return score;
     };
     config.set_sorting_function(vulcan::rank::FullSort);
@@ -64,7 +67,7 @@ int main() {
         "Whenever you receive an I/O request, this policy will be invoked to decide "
         "which SSD would be the best one to route the request to. You will receive "
         "features such as latency and temps for each SSD as well as some system-wide"
-        "features like load, cpu_usage, and which SSDs were chosen for previous requests"
+        "features like load and cpu_usage, and whether each SSD served the previous request"
     );
 
     auto store = vulcan::make_shared_feature_store(registry, store_cfg);
@@ -76,22 +79,23 @@ int main() {
         {2, "/dev/sdb"}  // starts bad, gets good
     };
 
-    for (const auto& d : drives) io_ssd_policy.add_object(d.first);
+    for (const auto& d : drives) io_ssd_policy.add_object(ssd{d.first});
 
     for (int t = 0; t < 5; ++t) {
         auto request = get_request();
         for(const auto& d : drives) {
-            if(store->has_listeners(latency)) store->update(latency, d.first, get_ssd_latency(d.first, t));
-            if(store->has_listeners(temp)) store->update(temp, d.first, get_ssd_temp(d.first, t));
+            if(store->has_listeners(latency)) store->update(latency, ssd{d.first}, get_ssd_latency(d.first, t));
+            if(store->has_listeners(temp)) store->update(temp, ssd{d.first}, get_ssd_temp(d.first, t));
         }
         if(store->has_listeners(system_load)) store->update(system_load, get_system_load(t));
         if(store->has_listeners(cpu_usage)) store->update(cpu_usage, get_cpu_usage(t));
 
-        int64_t best_id = vulcan::decision(io_ssd_policy);
+        ssd best = *vulcan::decision(io_ssd_policy);
 
-        if(store->has_listeners(prev_decisions)) store->update(prev_decisions, best_id);
+        if(store->has_listeners(chosen_last))
+            for(const auto& d : drives) store->update(chosen_last, ssd{d.first}, ssd{d.first} == best);
 
-        dispatch_io(t, best_id, request);
+        dispatch_io(t, best, request);
     }
     return 0;
 }

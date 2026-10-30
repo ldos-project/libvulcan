@@ -39,8 +39,24 @@ inline const char* feature_type_name(feature_type t) {
     }
 }
 
-// Generic feature handle
-template <typename T>
+// Object groups. A group is a C++ type: VULCAN_GROUP(page, "resident cache entries") declares the
+// member type `page`, an opaque id, and records the group's name and description. Each member of the
+// group is one value of that type. A registry adds the group with registry.declare_group<page>().
+// Write VULCAN_GROUP at global scope: it specializes vulcan::group_traits.
+template <typename G> struct group_traits;   // defined for each group by VULCAN_GROUP
+
+#define VULCAN_GROUP(Name, Description)                                      \
+    enum class Name : int64_t {};                                            \
+    template <> struct vulcan::group_traits<Name> {                          \
+        static constexpr const char* name = #Name;                           \
+        static constexpr const char* description = Description;              \
+    }
+
+// The group of global features: a feature keyed by no_group has a single value.
+struct no_group {};
+
+// Generic feature handle. G is the object group the feature is keyed by, or no_group for a global feature.
+template <typename T, typename G = no_group>
 struct feature_handle {
     int id;
     std::string name;
@@ -57,7 +73,14 @@ struct feature_desc {
     std::string name;
     std::string description;
     feature_type type;
+    int group = -1;   // index into feature_registry::get_groups(), or -1 for a global feature
     enum class scope_type { global, object } scope = scope_type::global;
+};
+
+// An object group as recorded by a registry
+struct group_desc {
+    std::string name;
+    std::string description;
 };
 
 }

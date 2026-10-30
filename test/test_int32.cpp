@@ -2,11 +2,13 @@
 #include <iostream>
 #include <stdexcept>
 
+VULCAN_GROUP(obj, "Test objects");
+
 int main() {
     vulcan_test::run_test("Int32 - RollingWindow and RollingCount", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto n = registry.global.declare<int32_t>("n", "Test int32");
+        auto n = registry.declare<int32_t>("n", "Test int32");
         config.add_listeners(n, {vulcan::listeners::RollingWindow(3), vulcan::listeners::RollingCount(3)});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
@@ -21,7 +23,7 @@ int main() {
     vulcan_test::run_test("Int32 - Statistics listeners", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto n = registry.global.declare<int32_t>("n", "Test int32");
+        auto n = registry.declare<int32_t>("n", "Test int32");
         config.add_listeners(n, {vulcan::listeners::Average(),
                                  vulcan::listeners::MinMax(),
                                  vulcan::listeners::RollingPercentile(4)});
@@ -38,23 +40,24 @@ int main() {
     vulcan_test::run_test("Int32 - Object features", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto n = registry.object.declare<int32_t>("n", "Per-object int32");
+        registry.declare_group<obj>();
+        auto n = registry.declare<int32_t, obj>("n", "Per-object int32");
         config.add_listeners(n, {vulcan::listeners::RollingWindow(2), vulcan::listeners::PopulationPercentile()});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
-        features.update(n, 1, 10);
-        features.update(n, 2, 30);
-        features.update(n, 3, 20);
-        TEST_ASSERT(features.get_latest(n, 2) == 30, "Object 2 latest");
+        features.update(n, obj{1}, 10);
+        features.update(n, obj{2}, 30);
+        features.update(n, obj{3}, 20);
+        TEST_ASSERT(features.get_latest(n, obj{2}) == 30, "Object 2 latest");
         TEST_ASSERT(features.get_pop_percentile(n, 0.5) == 20.0, "Median of 10, 20, 30");
     });
 
     vulcan_test::run_test("Int32 - Lookup checks the declared type", []() {
         vulcan::feature_registry registry;
-        registry.global.declare<int32_t>("n", "Test int32");
+        registry.declare<int32_t>("n", "Test int32");
         bool threw = false;
         try {
-            registry.global.lookup<int64_t>("n");
+            registry.lookup<int64_t>("n");
         } catch (const std::runtime_error&) {
             threw = true;
         }
