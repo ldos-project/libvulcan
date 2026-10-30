@@ -1,6 +1,7 @@
 #include "test_utils.hpp"
 #include <iostream>
 #include <stdexcept>
+#include <set>
 #include <vector>
 
 VULCAN_GROUP(page, "Test pages");
@@ -42,6 +43,34 @@ int main() {
         TEST_ASSERT((members(fs) == std::vector<page>{page{1}, page{2}, page{3}}), "Members in insertion order");
         fs.remove(page{1});
         TEST_ASSERT((members(fs) == std::vector<page>{page{3}, page{2}}), "Removal moves the last member into the hole");
+    });
+
+    vulcan_test::run_test("Groups - sample() returns distinct current members", []() {
+        vulcan::feature_registry registry;
+        registry.declare_group<page>();
+        vulcan::store_config config;
+        auto fs = vulcan::instantiate_feature_store(registry, config);
+
+        TEST_ASSERT(fs.sample<page>(5).empty(), "Sampling an empty group gives nothing");
+        for (int64_t id = 0; id < 100; ++id) fs.add(page{id});
+        for (std::size_t k : {0, 1, 5, 60, 100, 500}) {
+            auto picked = fs.sample<page>(k);
+            TEST_ASSERT(picked.size() == std::min<std::size_t>(k, 100), "Sample size is min(k, count)");
+            TEST_ASSERT(std::set<page>(picked.begin(), picked.end()).size() == picked.size(), "No duplicates");
+            for (page p : picked) TEST_ASSERT(fs.contains(p), "Every sampled page is a member");
+        }
+    });
+
+    vulcan_test::run_test("Groups - sample() can pick every member", []() {
+        vulcan::feature_registry registry;
+        registry.declare_group<page>();
+        vulcan::store_config config;
+        auto fs = vulcan::instantiate_feature_store(registry, config);
+
+        for (int64_t id = 0; id < 10; ++id) fs.add(page{id});
+        std::set<page> seen;
+        for (int i = 0; i < 1000; ++i) seen.insert(fs.sample<page>(1)[0]);
+        TEST_ASSERT(seen.size() == 10, "1000 draws of one member reach all 10");
     });
 
     vulcan_test::run_test("Groups - remove drops the member's listener state", []() {

@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
-#include <random>
 #include <iostream>
 #include <functional>
 #include <sstream>
@@ -80,11 +79,7 @@ public:
         if (mech == rank::FullSort) {
             candidates.assign(members.begin(), members.end());
         } else if (mech == rank::SampleSort) {
-            if (members.size() > 5) {
-                candidates = sample_unique(members, 5);
-            } else {
-                candidates.assign(members.begin(), members.end());
-            }
+            candidates = store_->template sample<G>(5);
         } else {
             throw std::runtime_error("Invalid mechanism: " + std::to_string(mech));
         }
@@ -189,27 +184,6 @@ private:
     const feature_registry& registry_;
     std::shared_ptr<feature_store> store_;
     rank_config<G> config_;
-    std::mt19937 rng_{std::random_device{}()};
-
-    template <typename Members>
-    std::vector<G> sample_unique(const Members& members, size_t k) {
-        std::uniform_int_distribution<size_t> dist(0, members.size() - 1);
-        size_t picked[5];
-        size_t n = 0;
-        std::vector<G> result;
-        result.reserve(k);
-        while (n < k) {
-            size_t idx = dist(rng_);
-            bool dup = false;
-            for (size_t j = 0; j < n; ++j)
-                if (picked[j] == idx) { dup = true; break; }
-            if (!dup) {
-                picked[n++] = idx;
-                result.push_back(members[idx]);
-            }
-        }
-        return result;
-    }
 };
 
 template <typename G>

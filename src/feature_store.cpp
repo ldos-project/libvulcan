@@ -69,7 +69,8 @@ feature_store::feature_store(const feature_registry& reg, const store_config& co
 feature_store::feature_store(feature_store&& other) noexcept
     : registry_(other.registry_),
       store_vec(std::move(other.store_vec)),
-      members_(std::move(other.members_)) {
+      members_(std::move(other.members_)),
+      rng_(std::move(other.rng_)) {
 }
 
 void feature_store::add_member(int group, int64_t id) {
@@ -92,6 +93,22 @@ void feature_store::remove_member(int group, int64_t id) {
     for (auto& data : store_vec)
         if (data.group == group)
             for (auto& l : data.listeners) l->erase(id);
+}
+
+// Floyd's algorithm: one random draw per sampled position, so the cost depends on k rather than n.
+std::vector<std::size_t> feature_store::sample_positions(std::size_t n, std::size_t k) const {
+    std::vector<std::size_t> picked;
+    if (k >= n) {
+        for (std::size_t i = 0; i < n; ++i) picked.push_back(i);
+        return picked;
+    }
+    picked.reserve(k);
+    for (std::size_t j = n - k; j < n; ++j) {
+        std::size_t t = std::uniform_int_distribution<std::size_t>(0, j)(rng_);
+        bool taken = std::find(picked.begin(), picked.end(), t) != picked.end();
+        picked.push_back(taken ? j : t);
+    }
+    return picked;
 }
 
 feature_store::~feature_store() {

@@ -21,6 +21,7 @@
 #include <memory>
 #include <algorithm>
 #include <ranges>
+#include <random>
 
 namespace vulcan {
 
@@ -71,6 +72,15 @@ public:
     auto all() const {
         return members_[registry_.group_index<G>()].order
              | std::views::transform([](int64_t id) { return G{id}; });
+    }
+
+    // Up to k distinct members of G, chosen uniformly at random; every member if k >= count<G>()
+    template <typename G> requires keyed<G>
+    std::vector<G> sample(std::size_t k) const {
+        const auto& order = members_[registry_.group_index<G>()].order;
+        std::vector<G> result;
+        for (std::size_t pos : sample_positions(order.size(), k)) result.push_back(G{order[pos]});
+        return result;
     }
 
     // Each operation has a global form, taking a feature_handle<T> (keyed by no_group) and no key, and a keyed
@@ -199,6 +209,10 @@ private:
 
     void add_member(int group, int64_t id);
     void remove_member(int group, int64_t id);
+
+    // k distinct positions in [0, n), or all of them if k >= n
+    std::vector<std::size_t> sample_positions(std::size_t n, std::size_t k) const;
+    mutable std::mt19937 rng_{std::random_device{}()};   // sampling does not change what the store holds
 
     // A member's id, which keys its state in every listener
     template <typename G>
