@@ -55,6 +55,9 @@ template <typename G> struct group_traits;   // defined for each group by VULCAN
 // The group of global features: a feature keyed by no_group has a single value.
 struct no_group {};
 
+// The group index of no_group, where real groups are indexed from 0
+inline constexpr int no_group_index = -1;
+
 // Generic feature handle. G is the object group the feature is keyed by, or no_group for a global feature.
 template <typename T, typename G = no_group>
 struct feature_handle {
@@ -73,7 +76,7 @@ struct feature_desc {
     std::string name;
     std::string description;
     feature_type type;
-    int group = -1;   // index into feature_registry::get_groups(), or -1 for a global feature
+    int group = no_group_index;   // index into feature_registry::get_groups()
     enum class scope_type { global, object } scope = scope_type::global;
 };
 

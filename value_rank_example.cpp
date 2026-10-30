@@ -93,7 +93,7 @@ int main() {
     auto rank_pol  = vulcan::instantiate_rank_policy(registry, rcfg, store);
 
     std::vector<int> ssds = {1, 2, 3};
-    for (int id : ssds) rank_pol.add_object(ssd{id});
+    for (int id : ssds) store->add(ssd{id});
 
     std::cout << value_pol.get_prompt() << "\n";
     std::cout << rank_pol.get_prompt() << "\n";

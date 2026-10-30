@@ -45,13 +45,14 @@ public:
     const std::vector<feature_desc>& get_features() const { return features; }
     const std::vector<group_desc>& get_groups() const { return groups; }
 
-private:
+    // G's index into get_groups(), or no_group_index; throws if G was not declared
     template <typename G>
     int group_index() const {
-        if constexpr (std::is_same_v<G, no_group>) return -1;
+        if constexpr (std::is_same_v<G, no_group>) return no_group_index;
         else return find_group(group_traits<G>::name);
     }
 
+private:
     void add_group(std::string name, std::string description);
     int find_group(const std::string& name) const;   // throws if the group was not declared
     int add_feature(std::string name, std::string description, feature_type type, int group);

@@ -33,6 +33,7 @@ public:
         state.history.push_back(val);
         state.counts[val]++;
     }
+    void erase(int64_t obj_id) override { states.erase(obj_id); }
     
     Type get_type() const override { return Type::RollingCount; }
     static Type static_type() { return Type::RollingCount; }

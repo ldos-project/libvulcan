@@ -23,7 +23,7 @@ int feature_registry::find_group(const std::string& name) const {
 }
 
 static std::string group_name(const std::vector<group_desc>& groups, int group) {
-    return group < 0 ? "global" : "keyed by '" + groups[group].name + "'";
+    return group == no_group_index ? "global" : "keyed by '" + groups[group].name + "'";
 }
 
 int feature_registry::add_feature(std::string name, std::string description, feature_type type, int group) {
@@ -35,7 +35,7 @@ int feature_registry::add_feature(std::string name, std::string description, fea
     desc.description = std::move(description);
     desc.type = type;
     desc.group = group;
-    desc.scope = group < 0 ? feature_desc::scope_type::global : feature_desc::scope_type::object;
+    desc.scope = group == no_group_index ? feature_desc::scope_type::global : feature_desc::scope_type::object;
     features.push_back(desc);
     return desc.id;
 }

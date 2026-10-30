@@ -14,6 +14,7 @@ public:
     AverageRuntime() {}
 
     void on_update(int64_t obj_id, T val) override { get_stats(obj_id).update(static_cast<double>(val)); }
+    void erase(int64_t obj_id) override { stats.erase(obj_id); }
     
     Type get_type() const override { return Type::Average; }
     static Type static_type() { return Type::Average; }

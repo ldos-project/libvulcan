@@ -15,6 +15,7 @@ public:
     RollingWindowRuntime(int w) : window(w) {}
 
     void on_update(int64_t obj_id, T val) override { get_stats(obj_id).update(val, window); }
+    void erase(int64_t obj_id) override { stats.erase(obj_id); }
 
     Type get_type() const override { return Type::RollingWindow; }
     static Type static_type() { return Type::RollingWindow; }

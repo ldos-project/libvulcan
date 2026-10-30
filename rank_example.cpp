@@ -79,7 +79,7 @@ int main() {
         {2, "/dev/sdb"}  // starts bad, gets good
     };
 
-    for (const auto& d : drives) io_ssd_policy.add_object(ssd{d.first});
+    for (const auto& d : drives) store->add(ssd{d.first});
 
     for (int t = 0; t < 5; ++t) {
         auto request = get_request();

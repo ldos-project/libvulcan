@@ -28,6 +28,9 @@ public:
         Unknown
     };
     virtual Type get_type() const = 0;
+
+    // Drops the state kept for obj_id, if any; the store calls this when a member leaves its group.
+    virtual void erase(int64_t obj_id) = 0;
 };
 
 template <typename T>

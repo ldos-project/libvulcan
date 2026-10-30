@@ -20,6 +20,7 @@
 #include <string>
 #include <memory>
 #include <algorithm>
+#include <ranges>
 
 namespace vulcan {
 
@@ -47,6 +48,29 @@ public:
     bool has_listeners(feature_handle<T, G> h) const {
         return h.id >= 0 && h.id < static_cast<int>(store_vec.size()) &&
                store_vec[h.id].type != feature_type::unknown && !store_vec[h.id].listeners.empty();
+    }
+
+    // Membership. The mechanism adds and removes the members of each object group. Removing a member
+    // drops its state from every listener on the group's features, so a member that is added again
+    // starts fresh.
+    template <typename G> requires keyed<G>
+    void add(G member) { add_member(registry_.group_index<G>(), key(member)); }   // no-op if already a member
+
+    template <typename G> requires keyed<G>
+    void remove(G member) { remove_member(registry_.group_index<G>(), key(member)); }   // no-op if not a member
+
+    template <typename G> requires keyed<G>
+    bool contains(G member) const { return members_[registry_.group_index<G>()].index.count(key(member)) != 0; }
+
+    template <typename G> requires keyed<G>
+    std::size_t count() const { return members_[registry_.group_index<G>()].order.size(); }
+
+    // Every current member of G, as a view over the store's member list: adding or removing a member
+    // invalidates it.
+    template <typename G> requires keyed<G>
+    auto all() const {
+        return members_[registry_.group_index<G>()].order
+             | std::views::transform([](int64_t id) { return G{id}; });
     }
 
     // Each operation has a global form, taking a feature_handle<T> (keyed by no_group) and no key, and a keyed
@@ -158,11 +182,23 @@ public:
     struct feature_data {
         std::vector<std::unique_ptr<RuntimeListener>> listeners;
         feature_type type = feature_type::unknown;
+        int group = no_group_index;   // the feature's object group
     };
 
 private:
     const feature_registry& registry_;
     std::vector<feature_data> store_vec;
+
+    // The members of one object group. Removal swaps the last member into the hole, so order is not
+    // insertion order once anything is removed.
+    struct group_members {
+        std::vector<int64_t> order;
+        std::unordered_map<int64_t, std::size_t> index;   // member id -> position in order
+    };
+    std::vector<group_members> members_;   // indexed like feature_registry::get_groups()
+
+    void add_member(int group, int64_t id);
+    void remove_member(int group, int64_t id);
 
     // A member's id, which keys its state in every listener
     template <typename G>

@@ -43,6 +43,7 @@ static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::P
 
 static void init_listeners(feature_store::feature_data& data, const feature_desc& desc, const std::vector<ListenerConfig>& listeners) {
     data.type = desc.type;
+    data.group = desc.group;
     std::unordered_set<size_t> seen;
     for (const auto& config : listeners) {
         if (!seen.insert(config.index()).second)
@@ -54,6 +55,7 @@ static void init_listeners(feature_store::feature_data& data, const feature_desc
 }
 
 feature_store::feature_store(const feature_registry& reg, const store_config& config) : registry_(reg) {
+    members_.resize(registry_.get_groups().size());
     const auto& user_listeners = config.get_listeners();
     for (const auto& desc : registry_.get_features()) {
         auto it = user_listeners.find(desc.id);
@@ -66,7 +68,30 @@ feature_store::feature_store(const feature_registry& reg, const store_config& co
 
 feature_store::feature_store(feature_store&& other) noexcept
     : registry_(other.registry_),
-      store_vec(std::move(other.store_vec)) {
+      store_vec(std::move(other.store_vec)),
+      members_(std::move(other.members_)) {
+}
+
+void feature_store::add_member(int group, int64_t id) {
+    auto& m = members_[group];
+    if (m.index.count(id)) return;
+    m.index[id] = m.order.size();
+    m.order.push_back(id);
+}
+
+void feature_store::remove_member(int group, int64_t id) {
+    auto& m = members_[group];
+    auto it = m.index.find(id);
+    if (it == m.index.end()) return;
+    std::size_t pos = it->second;
+    int64_t last = m.order.back();
+    m.order[pos] = last;
+    m.index[last] = pos;
+    m.order.pop_back();
+    m.index.erase(id);
+    for (auto& data : store_vec)
+        if (data.group == group)
+            for (auto& l : data.listeners) l->erase(id);
 }
 
 feature_store::~feature_store() {

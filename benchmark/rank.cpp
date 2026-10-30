@@ -75,11 +75,11 @@ int main(int argc, char* argv[]) {
 
         if (num_objects >= TOTAL_OBJECTS) {
             cached_obj victim = *vulcan::decision(*policy);
-            policy->remove_object(victim);
+            store->remove(victim);
             num_objects--;
         }
 
-        policy->add_object(o);
+        store->add(o);
         store->update(f_1, o, lat_dist(rng));
         store->update(f_2, o, size_dist(rng));
         store->update(f_3, o, static_cast<double>(i));

@@ -59,29 +59,10 @@ public:
     feature_store& get_feature_store() { return *store_; }
     const feature_store& get_feature_store() const { return *store_; }
 
-    void add_object(G obj) {
-        if (object_indices_.find(obj) == object_indices_.end()) {
-            object_indices_[obj] = object_vector_.size();
-            object_vector_.push_back(obj);
-        }
-    }
-
-    void remove_object(G obj) {
-        auto it = object_indices_.find(obj);
-        if (it != object_indices_.end()) {
-            size_t idx = it->second;
-            G last_obj = object_vector_.back();
-
-            object_vector_[idx] = last_obj;
-            object_indices_[last_obj] = idx;
-
-            object_vector_.pop_back();
-            object_indices_.erase(it);
-        }
-    }
-
+    // Ranks the current members of G in the store
     std::vector<std::pair<G, double>> rank_candidates() {
-        if (object_vector_.empty()) return {};
+        auto members = store_->template all<G>();
+        if (members.empty()) return {};
 
         auto mech = config_.get_sorting_function();
         auto& scorer = config_.get_scoring_fn();
@@ -97,12 +78,12 @@ public:
         // Snapshot candidates
         std::vector<G> candidates;
         if (mech == rank::FullSort) {
-            candidates = object_vector_;
+            candidates.assign(members.begin(), members.end());
         } else if (mech == rank::SampleSort) {
-            if (object_vector_.size() > 5) {
-                candidates = sample_unique(5);
+            if (members.size() > 5) {
+                candidates = sample_unique(members, 5);
             } else {
-                candidates = object_vector_;
+                candidates.assign(members.begin(), members.end());
             }
         } else {
             throw std::runtime_error("Invalid mechanism: " + std::to_string(mech));
@@ -208,12 +189,11 @@ private:
     const feature_registry& registry_;
     std::shared_ptr<feature_store> store_;
     rank_config<G> config_;
-    std::vector<G> object_vector_;
-    std::unordered_map<G, size_t> object_indices_;
     std::mt19937 rng_{std::random_device{}()};
 
-    std::vector<G> sample_unique(size_t k) {
-        std::uniform_int_distribution<size_t> dist(0, object_vector_.size() - 1);
+    template <typename Members>
+    std::vector<G> sample_unique(const Members& members, size_t k) {
+        std::uniform_int_distribution<size_t> dist(0, members.size() - 1);
         size_t picked[5];
         size_t n = 0;
         std::vector<G> result;
@@ -225,7 +205,7 @@ private:
                 if (picked[j] == idx) { dup = true; break; }
             if (!dup) {
                 picked[n++] = idx;
-                result.push_back(object_vector_[idx]);
+                result.push_back(members[idx]);
             }
         }
         return result;

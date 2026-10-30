@@ -16,6 +16,14 @@ public:
     PopulationPercentileRuntime() {}
 
     void on_update(int64_t obj_id, T val) override { update_impl(obj_id, val); }
+
+    // A removed member leaves the population
+    void erase(int64_t obj_id) override {
+        auto it = current_values.find(obj_id);
+        if (it == current_values.end()) return;
+        multiset.remove(it->second);
+        current_values.erase(it);
+    }
     
     Type get_type() const override { return Type::PopulationPercentile; }
     static Type static_type() { return Type::PopulationPercentile; }

@@ -16,6 +16,7 @@ public:
     MinMaxRuntime() {}
 
     void on_update(int64_t obj_id, T val) override { get_stats(obj_id).update(val); }
+    void erase(int64_t obj_id) override { stats.erase(obj_id); }
     
     Type get_type() const override { return Type::MinMax; }
     static Type static_type() { return Type::MinMax; }
