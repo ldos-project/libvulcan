@@ -33,36 +33,40 @@ static std::unique_ptr<RuntimeListener> make_typed(feature_type t, const Args&..
     }
 }
 
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::Average&, feature_type t) { return make_typed<AverageRuntime>(t); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::MinMax&, feature_type t) { return make_typed<MinMaxRuntime>(t); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::RollingWindow& c, feature_type t) { return make_typed<RollingWindowRuntime>(t, c.window); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::RollingPercentile& c, feature_type t) { return make_typed<RollingPercentileRuntime>(t, c.window); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::RollingCount& c, feature_type t) { return make_typed<RollingCountRuntime>(t, c.window); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::EWMA& c, feature_type t) { return make_typed<EWMARuntime>(t, c.alphas); }
-static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::PopulationPercentile&, feature_type t) { return make_typed<PopulationPercentileRuntime>(t); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::Average&, const feature_desc& d) { return make_typed<AverageRuntime>(d.type); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::MinMax&, const feature_desc& d) { return make_typed<MinMaxRuntime>(d.type); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::RollingWindow& c, const feature_desc& d) { return make_typed<RollingWindowRuntime>(d.type, c.window); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::RollingPercentile& c, const feature_desc& d) { return make_typed<RollingPercentileRuntime>(d.type, c.window); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::RollingCount& c, const feature_desc& d) { return make_typed<RollingCountRuntime>(d.type, c.window); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::EWMA& c, const feature_desc& d) { return make_typed<EWMARuntime>(d.type, c.alphas); }
+static std::unique_ptr<RuntimeListener> make_listener(const vulcan::listeners::PopulationPercentile&, const feature_desc& d) { return make_typed<PopulationPercentileRuntime>(d.type, d.initial); }
 
 static void init_listeners(feature_store::feature_data& data, const feature_desc& desc, const std::vector<ListenerConfig>& listeners) {
     data.type = desc.type;
-    data.group = desc.group;
     std::unordered_set<size_t> seen;
     for (const auto& config : listeners) {
         if (!seen.insert(config.index()).second)
             throw std::runtime_error("Duplicate listener type attached to the same feature");
     }
     for (const auto& config : listeners) {
-        data.listeners.push_back(std::visit([&](const auto& c) { return make_listener(c, desc.type); }, config));
+        data.listeners.push_back(std::visit([&](const auto& c) { return make_listener(c, desc); }, config));
     }
 }
 
 feature_store::feature_store(const feature_registry& reg, const store_config& config) : registry_(reg) {
     members_.resize(registry_.get_groups().size());
+    group_features_.resize(registry_.get_groups().size());
+    const auto& features = registry_.get_features();
+    store_vec.resize(features.size());
     const auto& user_listeners = config.get_listeners();
-    for (const auto& desc : registry_.get_features()) {
+    for (const auto& desc : features) {
+        store_vec[desc.id].group = desc.group;
         auto it = user_listeners.find(desc.id);
-        if (it != user_listeners.end()) {
-            if (desc.id >= (int64_t) store_vec.size()) store_vec.resize(desc.id + 1);
-            init_listeners(store_vec[desc.id], desc, it->second);
-        }
+        if (it == user_listeners.end()) continue;
+        init_listeners(store_vec[desc.id], desc, it->second);
+        // A global feature starts at its initial value; a keyed feature's members get theirs when added.
+        if (desc.group == no_group_index) seed(desc.id, global_key, desc.initial);
+        else group_features_[desc.group].push_back(desc.id);
     }
 }
 
@@ -70,14 +74,16 @@ feature_store::feature_store(feature_store&& other) noexcept
     : registry_(other.registry_),
       store_vec(std::move(other.store_vec)),
       members_(std::move(other.members_)),
+      group_features_(std::move(other.group_features_)),
       rng_(std::move(other.rng_)) {
 }
 
-void feature_store::add_member(int group, int64_t id) {
+bool feature_store::add_member(int group, int64_t id) {
     auto& m = members_[group];
-    if (m.index.count(id)) return;
+    if (m.index.count(id)) return false;
     m.index[id] = m.order.size();
     m.order.push_back(id);
+    return true;
 }
 
 void feature_store::remove_member(int group, int64_t id) {
@@ -90,9 +96,19 @@ void feature_store::remove_member(int group, int64_t id) {
     m.index[last] = pos;
     m.order.pop_back();
     m.index.erase(id);
-    for (auto& data : store_vec)
-        if (data.group == group)
-            for (auto& l : data.listeners) l->erase(id);
+    for (int feature : group_features_[group])
+        for (auto& l : store_vec[feature].listeners) l->erase(id);
+}
+
+// The variant holds the feature's own value type, so this calls push<T> with the feature's T.
+void feature_store::seed(int id, int64_t obj_id, const feature_value& value) {
+    std::visit([&](auto v) { push(id, obj_id, v); }, value);
+}
+
+void feature_store::not_a_member(int id, int64_t obj_id) const {
+    const auto& f = registry_.get_features()[id];
+    throw std::logic_error("Feature '" + f.name + "' used for " + std::to_string(obj_id) +
+                           ", which is not a member of group '" + registry_.get_groups()[f.group].name + "'");
 }
 
 // Floyd's algorithm: one random draw per sampled position, so the cost depends on k rather than n.

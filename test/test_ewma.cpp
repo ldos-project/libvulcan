@@ -1,6 +1,7 @@
 #include "test_utils.hpp"
 #include <cmath>
 #include <iostream>
+#include <stdexcept>
 
 VULCAN_GROUP(obj, "Test objects");
 
@@ -8,12 +9,11 @@ int main() {
     vulcan_test::run_test("EWMA - Global initialization", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto var = registry.declare<double>("g_val", "Global value");
+        auto var = registry.declare<double>("g_val", "Global value", 10.0);
         config.add_listeners(var, {vulcan::listeners::EWMA({0.1, 0.5})});
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
-        // First update: EWMA should equal the seeded value exactly
-        fs.update(var, 10.0);
+        // Before any update, EWMA equals the initial value exactly
         TEST_ASSERT(std::abs(fs.get_ewma(var, 0.1) - 10.0) < 1e-9, "Global alpha=0.1 init should be 10.0");
         TEST_ASSERT(std::abs(fs.get_ewma(var, 0.5) - 10.0) < 1e-9, "Global alpha=0.5 init should be 10.0");
     });
@@ -21,12 +21,11 @@ int main() {
     vulcan_test::run_test("EWMA - Global multi-alpha correctness", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto var = registry.declare<double>("g_val", "Global value");
+        auto var = registry.declare<double>("g_val", "Global value", 10.0);
         config.add_listeners(var, {vulcan::listeners::EWMA({0.1, 0.5})});
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
-        // Seed with 10, then feed 20 and 30
-        fs.update(var, 10.0);
+        // Start at the initial value 10, then feed 20 and 30
         fs.update(var, 20.0);
         // alpha=0.1: 0.1*20 + 0.9*10 = 11.0
         // alpha=0.5: 0.5*20 + 0.5*10 = 15.0
@@ -43,11 +42,10 @@ int main() {
     vulcan_test::run_test("EWMA - Global int64_t update path", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto var = registry.declare<int64_t>("g_int", "Global int");
+        auto var = registry.declare<int64_t>("g_int", "Global int", 4);
         config.add_listeners(var, {vulcan::listeners::EWMA({0.5})});
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
-        fs.update(var, (int64_t)4);
         fs.update(var, (int64_t)8);
         // alpha=0.5: 0.5*8 + 0.5*4 = 6.0
         TEST_ASSERT(std::abs(fs.get_ewma(var, 0.5) - 6.0) < 1e-9, "Global int path alpha=0.5 after [4,8] should be 6.0");
@@ -57,18 +55,22 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         registry.declare_group<obj>();
-        auto var = registry.declare<double, obj>("obj_val", "Per-object value");
+        auto var = registry.declare<double, obj>("obj_val", "Per-object value", 0.0);
         config.add_listeners(var, {vulcan::listeners::EWMA({0.2, 0.8})});
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
-        // Unseen object should return 0.0
-        TEST_ASSERT(std::abs(fs.get_ewma(var, obj{99}, 0.2)) < 1e-9, "Unseen object should return 0.0");
+        bool threw = false;
+        try {
+            fs.get_ewma(var, obj{99}, 0.2);
+        } catch (const std::logic_error&) {
+            threw = true;
+        }
+        TEST_ASSERT(threw, "Reading a non-member should throw");
 
-        // Seed both objects
-        fs.update(var, obj{1}, 5.0);
-        fs.update(var, obj{2}, 100.0);
+        fs.add(obj{1}, {{var, 5.0}});
+        fs.add(obj{2}, {{var, 100.0}});
 
-        // First update is the seeded value
+        // EWMA starts at each member's first value
         TEST_ASSERT(std::abs(fs.get_ewma(var, obj{1}, 0.2) - 5.0) < 1e-9, "obj1 alpha=0.2 init should be 5.0");
         TEST_ASSERT(std::abs(fs.get_ewma(var, obj{1}, 0.8) - 5.0) < 1e-9, "obj1 alpha=0.8 init should be 5.0");
         TEST_ASSERT(std::abs(fs.get_ewma(var, obj{2}, 0.2) - 100.0) < 1e-9, "obj2 alpha=0.2 init should be 100.0");
@@ -79,18 +81,18 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         registry.declare_group<obj>();
-        auto var = registry.declare<double, obj>("obj_val", "Per-object value");
+        auto var = registry.declare<double, obj>("obj_val", "Per-object value", 0.0);
         config.add_listeners(var, {vulcan::listeners::EWMA({0.2, 0.8})});
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
-        fs.update(var, obj{1}, 5.0);
+        fs.add(obj{1}, {{var, 5.0}});
+        fs.add(obj{2}, {{var, 100.0}});
         fs.update(var, obj{1}, 10.0);
         // obj1 alpha=0.2: 0.2*10 + 0.8*5 = 2 + 4 = 6.0
         // obj1 alpha=0.8: 0.8*10 + 0.2*5 = 8 + 1 = 9.0
         TEST_ASSERT(std::abs(fs.get_ewma(var, obj{1}, 0.2) - 6.0) < 1e-9, "obj1 alpha=0.2 after [5,10] should be 6.0");
         TEST_ASSERT(std::abs(fs.get_ewma(var, obj{1}, 0.8) - 9.0) < 1e-9, "obj1 alpha=0.8 after [5,10] should be 9.0");
 
-        fs.update(var, obj{2}, 100.0);
         fs.update(var, obj{2}, 200.0);
         // obj2 alpha=0.2: 0.2*200 + 0.8*100 = 40 + 80 = 120.0
         // obj2 alpha=0.8: 0.8*200 + 0.2*100 = 160 + 20 = 180.0
@@ -105,11 +107,11 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         registry.declare_group<obj>();
-        auto var = registry.declare<int64_t, obj>("obj_int", "Per-object int");
+        auto var = registry.declare<int64_t, obj>("obj_int", "Per-object int", 0);
         config.add_listeners(var, {vulcan::listeners::EWMA({0.5})});
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
-        fs.update(var, obj{7}, (int64_t)4);
+        fs.add(obj{7}, {{var, 4}});
         fs.update(var, obj{7}, (int64_t)8);
         // alpha=0.5: 0.5*8 + 0.5*4 = 6.0
         TEST_ASSERT(std::abs(fs.get_ewma(var, obj{7}, 0.5) - 6.0) < 1e-9, "Object int path alpha=0.5 after [4,8] should be 6.0");

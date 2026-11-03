@@ -29,6 +29,17 @@ namespace vulcan {
 template <typename G>
 concept keyed = !std::is_same_v<G, no_group>;
 
+// A value for one feature of a member of G, passed to feature_store::add in place of the feature's declared
+// initial value: store.add(page{42}, {{size, 4096}}). The handle's group must be G.
+template <typename G>
+struct initial_value {
+    int id;
+    feature_value value;
+
+    template <typename T>
+    initial_value(feature_handle<T, G> h, std::type_identity_t<T> v) : id(h.id), value(v) {}
+};
+
 class feature_store {
 public:
     // A global feature is stored as a single object with this id; real object ids are non-negative.
@@ -51,11 +62,22 @@ public:
                store_vec[h.id].type != feature_type::unknown && !store_vec[h.id].listeners.empty();
     }
 
-    // Membership. The mechanism adds and removes the members of each object group. Removing a member
-    // drops its state from every listener on the group's features, so a member that is added again
-    // starts fresh.
+    // Membership. The mechanism adds and removes the members of each object group. Adding a member records
+    // a first value for each of the group's features: the value given in `values`, or else the feature's
+    // declared initial value. Removing a member drops its state from every listener on the group's
+    // features, so a member that is added again starts fresh. Reading or updating a feature for an object
+    // that is not a member throws std::logic_error.
     template <typename G> requires keyed<G>
-    void add(G member) { add_member(registry_.group_index<G>(), key(member)); }   // no-op if already a member
+    void add(G member, std::initializer_list<initial_value<G>> values = {}) {   // no-op if already a member
+        int group = registry_.group_index<G>();
+        if (!add_member(group, key(member))) return;
+        for (int id : group_features_[group]) {
+            const feature_value* v = &registry_.get_features()[id].initial;
+            for (const auto& given : values)
+                if (given.id == id) v = &given.value;
+            seed(id, key(member), *v);
+        }
+    }
 
     template <typename G> requires keyed<G>
     void remove(G member) { remove_member(registry_.group_index<G>(), key(member)); }   // no-op if not a member
@@ -92,7 +114,7 @@ public:
     void update(feature_handle<T> h, std::type_identity_t<T> val) { push(h.id, global_key, val); }
 
     template <typename T, typename G> requires keyed<G>
-    void update(feature_handle<T, G> h, G member, std::type_identity_t<T> val) { push(h.id, key(member), val); }
+    void update(feature_handle<T, G> h, G member, std::type_identity_t<T> val) { push(h.id, member_key(h.id, member), val); }
 
     // Temporal percentile: over a feature's recent values (RollingPercentile)
     template <typename T>
@@ -102,7 +124,7 @@ public:
 
     template <typename T, typename G> requires keyed<G>
     double get_temporal_percentile(feature_handle<T, G> h, G member, double p) const {
-        return listener<RollingPercentileRuntime<T>>(h.id)->get_percentile(key(member), p);
+        return listener<RollingPercentileRuntime<T>>(h.id)->get_percentile(member_key(h.id, member), p);
     }
 
     // Population percentile: across the latest value of every member of the feature's group (PopulationPercentile)
@@ -116,20 +138,20 @@ public:
     T get_max(feature_handle<T> h) const { return listener<MinMaxRuntime<T>>(h.id)->get_max(global_key); }
 
     template <typename T, typename G> requires keyed<G>
-    T get_max(feature_handle<T, G> h, G member) const { return listener<MinMaxRuntime<T>>(h.id)->get_max(key(member)); }
+    T get_max(feature_handle<T, G> h, G member) const { return listener<MinMaxRuntime<T>>(h.id)->get_max(member_key(h.id, member)); }
 
     template <typename T>
     T get_min(feature_handle<T> h) const { return listener<MinMaxRuntime<T>>(h.id)->get_min(global_key); }
 
     template <typename T, typename G> requires keyed<G>
-    T get_min(feature_handle<T, G> h, G member) const { return listener<MinMaxRuntime<T>>(h.id)->get_min(key(member)); }
+    T get_min(feature_handle<T, G> h, G member) const { return listener<MinMaxRuntime<T>>(h.id)->get_min(member_key(h.id, member)); }
 
     // Average: the mean of every value the feature has received
     template <typename T>
     double get_avg(feature_handle<T> h) const { return listener<AverageRuntime<T>>(h.id)->get_avg(global_key); }
 
     template <typename T, typename G> requires keyed<G>
-    double get_avg(feature_handle<T, G> h, G member) const { return listener<AverageRuntime<T>>(h.id)->get_avg(key(member)); }
+    double get_avg(feature_handle<T, G> h, G member) const { return listener<AverageRuntime<T>>(h.id)->get_avg(member_key(h.id, member)); }
 
     // Window average: the mean of the values a RollingWindow currently holds
     template <typename T>
@@ -137,7 +159,7 @@ public:
 
     template <typename T, typename G> requires keyed<G>
     double get_window_avg(feature_handle<T, G> h, G member) const {
-        return listener<RollingWindowRuntime<T>>(h.id)->get_avg(key(member));
+        return listener<RollingWindowRuntime<T>>(h.id)->get_avg(member_key(h.id, member));
     }
 
     // EWMA
@@ -146,7 +168,7 @@ public:
 
     template <typename T, typename G> requires keyed<G>
     double get_ewma(feature_handle<T, G> h, G member, double alpha) const {
-        return listener<EWMARuntime<T>>(h.id)->get(key(member), alpha);
+        return listener<EWMARuntime<T>>(h.id)->get(member_key(h.id, member), alpha);
     }
 
     // Rolling Window
@@ -155,7 +177,7 @@ public:
 
     template <typename T, typename G> requires keyed<G>
     T get_latest(feature_handle<T, G> h, G member) const {
-        return listener<RollingWindowRuntime<T>>(h.id)->get_latest(key(member));
+        return listener<RollingWindowRuntime<T>>(h.id)->get_latest(member_key(h.id, member));
     }
 
     template <typename T>
@@ -165,7 +187,7 @@ public:
 
     template <typename T, typename G> requires keyed<G>
     T get_kth_recent(feature_handle<T, G> h, G member, std::size_t k) const {
-        return listener<RollingWindowRuntime<T>>(h.id)->get_kth(key(member), k);
+        return listener<RollingWindowRuntime<T>>(h.id)->get_kth(member_key(h.id, member), k);
     }
 
     // Rolling Count (integer and bool features)
@@ -176,7 +198,7 @@ public:
 
     template <typename T, typename G> requires keyed<G>
     int get_count(feature_handle<T, G> h, G member, std::type_identity_t<T> val) const {
-        return listener<RollingCountRuntime<T>>(h.id)->get_count(key(member), val);
+        return listener<RollingCountRuntime<T>>(h.id)->get_count(member_key(h.id, member), val);
     }
 
     template <typename T>
@@ -186,7 +208,7 @@ public:
 
     template <typename T, typename G> requires keyed<G>
     bool contains(feature_handle<T, G> h, G member, std::type_identity_t<T> val) const {
-        return listener<RollingCountRuntime<T>>(h.id)->contains(key(member), val);
+        return listener<RollingCountRuntime<T>>(h.id)->contains(member_key(h.id, member), val);
     }
 
     struct feature_data {
@@ -207,8 +229,22 @@ private:
     };
     std::vector<group_members> members_;   // indexed like feature_registry::get_groups()
 
-    void add_member(int group, int64_t id);
+    // For each group, the features that have listeners: those a new member's first values go to
+    std::vector<std::vector<int>> group_features_;
+
+    bool add_member(int group, int64_t id);   // false if id is already a member
     void remove_member(int group, int64_t id);
+    void seed(int id, int64_t obj_id, const feature_value& value);
+
+    // member's key, after checking that member belongs to feature id's group
+    template <typename G>
+    int64_t member_key(int id, G member) const {
+        int64_t k = key(member);
+        if (id >= 0 && id < static_cast<int>(store_vec.size()) && !members_[store_vec[id].group].index.count(k))
+            not_a_member(id, k);
+        return k;
+    }
+    [[noreturn]] void not_a_member(int id, int64_t obj_id) const;
 
     // k distinct positions in [0, n), or all of them if k >= n
     std::vector<std::size_t> sample_positions(std::size_t n, std::size_t k) const;

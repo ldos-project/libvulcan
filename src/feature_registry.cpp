@@ -26,7 +26,8 @@ static std::string group_name(const std::vector<group_desc>& groups, int group) 
     return group == no_group_index ? "global" : "keyed by '" + groups[group].name + "'";
 }
 
-int feature_registry::add_feature(std::string name, std::string description, feature_type type, int group) {
+int feature_registry::add_feature(std::string name, std::string description, feature_type type, int group,
+                                  feature_value initial) {
     if (find_by_name(features, name))
         throw std::runtime_error("Feature '" + name + "' already declared");
     feature_desc desc;
@@ -34,6 +35,7 @@ int feature_registry::add_feature(std::string name, std::string description, fea
     desc.name = std::move(name);
     desc.description = std::move(description);
     desc.type = type;
+    desc.initial = initial;
     desc.group = group;
     desc.scope = group == no_group_index ? feature_desc::scope_type::global : feature_desc::scope_type::object;
     features.push_back(desc);

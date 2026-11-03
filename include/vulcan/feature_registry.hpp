@@ -25,9 +25,11 @@ public:
     }
 
     // Declares a feature with value type T, keyed by object group G; G = no_group declares a global feature.
+    // `initial` is the feature's first value: for a keyed feature, each member's value when it is added to
+    // the store; for a global feature, its value when the store is created.
     template <typename T, typename G = no_group>
-    feature_handle<T, G> declare(std::string name, std::string description) {
-        int id = add_feature(name, std::move(description), feature_type_of<T>::value, group_index<G>());
+    feature_handle<T, G> declare(std::string name, std::string description, std::type_identity_t<T> initial) {
+        int id = add_feature(name, std::move(description), feature_type_of<T>::value, group_index<G>(), initial);
         return {id, std::move(name), this};
     }
 
@@ -55,7 +57,7 @@ public:
 private:
     void add_group(std::string name, std::string description);
     int find_group(const std::string& name) const;   // throws if the group was not declared
-    int add_feature(std::string name, std::string description, feature_type type, int group);
+    int add_feature(std::string name, std::string description, feature_type type, int group, feature_value initial);
     const feature_desc& lookup_checked(const std::string& name, feature_type type, int group) const;
 
     int next_id = 0;

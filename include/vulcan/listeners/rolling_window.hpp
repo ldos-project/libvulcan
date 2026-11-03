@@ -2,6 +2,7 @@
 
 #include "vulcan/runtime_listener.hpp"
 #include <string>
+#include <algorithm>
 #include <vector>
 #include <unordered_map>
 
@@ -90,8 +91,10 @@ private:
             return history[last];
         }
 
+        // k past the oldest value held gives the oldest value
         T kth(size_t k, int window) const {
-            if (k >= static_cast<size_t>(count)) return T{};
+            if (count == 0) return T{};
+            k = std::min(k, static_cast<size_t>(count - 1));
             if (window <= 0 || count < window) return history[count - 1 - k];
             int last = (head == 0) ? window - 1 : head - 1;
             int idx = (last - k + window) % window;

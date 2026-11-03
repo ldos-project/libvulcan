@@ -1,5 +1,6 @@
 #pragma once
 
+#include "vulcan/feature.hpp"
 #include "vulcan/runtime_listener.hpp"
 #include <string>
 #include <type_traits>
@@ -13,7 +14,7 @@ class PopulationPercentileRuntime : public TypedRuntimeListener<T> {
 public:
     using Type = RuntimeListener::Type;
 
-    PopulationPercentileRuntime() {}
+    explicit PopulationPercentileRuntime(const feature_value& initial) : initial(std::get<T>(initial)) {}
 
     void on_update(int64_t obj_id, T val) override { update_impl(obj_id, val); }
 
@@ -32,11 +33,14 @@ public:
     static constexpr bool accepts = !std::is_same_v<T, bool>;
     static std::string name() { return "PopulationPercentile"; }
 
+    // A group with no members gives the feature's initial value, the value any member starts at
     double get_percentile(double p) const {
+        if (multiset.empty()) return static_cast<double>(initial);
         return static_cast<double>(multiset.percentile(p));
     }
 
 private:
+    T initial;
     std::unordered_map<int64_t, T> current_values; // obj_id -> current value
     OrderedMultiset<T> multiset;
 

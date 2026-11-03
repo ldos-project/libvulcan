@@ -35,12 +35,12 @@ int main() {
     vulcan::feature_registry registry;
 
     // setup of global + per object features
-    auto system_load = registry.declare<double>("system_load", "Current system load average");
-    auto cpu_usage   = registry.declare<double>("cpu_usage", "CPU usage %");
+    auto system_load = registry.declare<double>("system_load", "Current system load average", 0.0);
+    auto cpu_usage   = registry.declare<double>("cpu_usage", "CPU usage %", 0.0);
     registry.declare_group<ssd>();
-    auto latency = registry.declare<double, ssd>("latency", "Avg latency (ms)");
-    auto temp    = registry.declare<int64_t, ssd>("temp", "Drive temperature (C)");
-    auto chosen_last = registry.declare<bool, ssd>("chosen_last", "Whether this SSD served the previous request");
+    auto latency = registry.declare<double, ssd>("latency", "Avg latency (ms)", 0.0);
+    auto temp    = registry.declare<int64_t, ssd>("temp", "Drive temperature (C)", 0);
+    auto chosen_last = registry.declare<bool, ssd>("chosen_last", "Whether this SSD served the previous request", false);
 
     vulcan::store_config store_cfg;
     vulcan::rank_config<ssd> config;

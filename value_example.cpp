@@ -6,9 +6,9 @@
 
 int main() {
     vulcan::feature_registry registry;
-    auto rtt       = registry.declare<double>("rtt", "RTT time in milliseconds");
-    auto queue_len = registry.declare<int64_t>("queue_len", "Queue length in packets");
-    auto prev_cwnd = registry.declare<double>("prev_cwnd", "Congestion window size returned by the previous decision");
+    auto rtt       = registry.declare<double>("rtt", "RTT time in milliseconds", 0.0);
+    auto queue_len = registry.declare<int64_t>("queue_len", "Queue length in packets", 0);
+    auto prev_cwnd = registry.declare<double>("prev_cwnd", "Congestion window size returned by the previous decision", 0.0);
 
     vulcan::value_config config1, config2;
 

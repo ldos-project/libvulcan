@@ -9,17 +9,16 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
 
-        auto global_decisions = registry.declare<int64_t>("recent_decisions", "Global Tracking");
+        auto global_decisions = registry.declare<int64_t>("recent_decisions", "Global Tracking", 100);
         registry.declare_group<obj>();
-        auto user_decisions   = registry.declare<int64_t, obj>("user_decisions", "Object Tracking");
+        auto user_decisions   = registry.declare<int64_t, obj>("user_decisions", "Object Tracking", 0);
 
         // Track last 3 global decisions
         config.add_listeners(global_decisions, {vulcan::listeners::RollingCount(3)});
 
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
-        // Test Global RollingCount (Window = 3)
-        fs.update(global_decisions, 100);
+        // Test Global RollingCount (Window = 3): the initial value 100, then 200, 100
         fs.update(global_decisions, 200);
         fs.update(global_decisions, 100);
 
@@ -41,7 +40,7 @@ int main() {
     vulcan_test::run_test("RollingCount - Object", []() {
         vulcan::feature_registry registry;
         registry.declare_group<obj>();
-        auto user_decisions   = registry.declare<int64_t, obj>("user_decisions", "Object Tracking");
+        auto user_decisions   = registry.declare<int64_t, obj>("user_decisions", "Object Tracking", 0);
 
         vulcan::store_config config;
 
@@ -49,8 +48,8 @@ int main() {
 
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
-        // Test Object RollingCount (Window = 2) for Object 5
-        fs.update(user_decisions, obj{5}, 555);
+        // Test Object RollingCount (Window = 2) for Object 5, added with a first value of 555
+        fs.add(obj{5}, {{user_decisions, 555}});
         fs.update(user_decisions, obj{5}, 555);
         TEST_ASSERT(fs.get_count(user_decisions, obj{5}, 555) == 2, "Object 5 count of 555 should be 2");
         TEST_ASSERT(fs.contains(user_decisions, obj{5}, 555) == true, "Object 5 should contain 555");

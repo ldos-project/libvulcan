@@ -28,10 +28,10 @@ int main(int argc, char* argv[]) {
 
     vulcan::feature_registry registry;
     registry.declare_group<cached_obj>();
-    auto f_1 = registry.declare<double, cached_obj>("f_1", "Feature 1");
-    auto f_2 = registry.declare<double, cached_obj>("f_2", "Feature 2");
-    auto f_3 = registry.declare<double, cached_obj>("f_3", "Feature 3");
-    auto f_4 = registry.declare<double, cached_obj>("f_4", "Feature 4");
+    auto f_1 = registry.declare<double, cached_obj>("f_1", "Feature 1", 0.0);
+    auto f_2 = registry.declare<double, cached_obj>("f_2", "Feature 2", 0.0);
+    auto f_3 = registry.declare<double, cached_obj>("f_3", "Feature 3", 0.0);
+    auto f_4 = registry.declare<double, cached_obj>("f_4", "Feature 4", 0.0);
 
     vulcan::store_config store_cfg;
     vulcan::rank_config<cached_obj> config;

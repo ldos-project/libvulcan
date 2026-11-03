@@ -45,11 +45,11 @@ int get_ssd_queue_len(int ssd_id, int t) {
 int main() {
     vulcan::feature_registry registry;
 
-    auto io_queue_depth = registry.declare<double>("io_queue_depth", "Pending I/O requests in the system queue");
-    auto system_iops    = registry.declare<double>("system_iops", "Current system-wide IOPS throughput");
+    auto io_queue_depth = registry.declare<double>("io_queue_depth", "Pending I/O requests in the system queue", 0.0);
+    auto system_iops    = registry.declare<double>("system_iops", "Current system-wide IOPS throughput", 0.0);
     registry.declare_group<ssd>();
-    auto ssd_latency    = registry.declare<double, ssd>("ssd_latency", "Read latency in ms for this SSD");
-    auto ssd_queue_len  = registry.declare<int64_t, ssd>("ssd_queue_len", "Pending requests queued for this SSD");
+    auto ssd_latency    = registry.declare<double, ssd>("ssd_latency", "Read latency in ms for this SSD", 0.0);
+    auto ssd_queue_len  = registry.declare<int64_t, ssd>("ssd_queue_len", "Pending requests queued for this SSD", 0);
 
     vulcan::store_config store_cfg;
     vulcan::value_config vcfg;

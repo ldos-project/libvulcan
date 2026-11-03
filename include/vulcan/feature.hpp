@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <variant>
 #include <vector>
 #include "listeners.hpp"
 
@@ -27,6 +28,9 @@ template <> struct feature_type_of<float>   { static constexpr feature_type valu
 template <> struct feature_type_of<int64_t> { static constexpr feature_type value = feature_type::i64; };
 template <> struct feature_type_of<int32_t> { static constexpr feature_type value = feature_type::i32; };
 template <> struct feature_type_of<bool>    { static constexpr feature_type value = feature_type::boolean; };
+
+// A value of any supported feature type, e.g. a feature's declared initial value
+using feature_value = std::variant<double, float, int64_t, int32_t, bool>;
 
 inline const char* feature_type_name(feature_type t) {
     switch (t) {
@@ -76,6 +80,7 @@ struct feature_desc {
     std::string name;
     std::string description;
     feature_type type;
+    feature_value initial;        // every member's first value, and a global feature's first value
     int group = no_group_index;   // index into feature_registry::get_groups()
     enum class scope_type { global, object } scope = scope_type::global;
 };

@@ -15,17 +15,17 @@ int main() {
     vulcan::store_config config;
     
     // 1. Global Feature with Percentile History
-    auto global_feat = registry.declare<double>("g_load", "Global Load");
+    auto global_feat = registry.declare<double>("g_load", "Global Load", 0.0);
     // Window of 100
     config.add_listeners(global_feat, {vulcan::listeners::RollingPercentile(100)});
 
     // 2. Object Feature with Population Distribution
     registry.declare_group<obj>();
-    auto obj_feat = registry.declare<double, obj>("o_temp", "Object Temp");
+    auto obj_feat = registry.declare<double, obj>("o_temp", "Object Temp", 0.0);
     config.add_listeners(obj_feat, {vulcan::listeners::PopulationPercentile()});
 
     // 3. Object Feature with Both Percentiles
-    auto obj_combined_feat = registry.declare<double, obj>("o_comb", "Object Combined");
+    auto obj_combined_feat = registry.declare<double, obj>("o_comb", "Object Combined", 0.0);
     config.add_listeners(obj_combined_feat, {
         vulcan::listeners::RollingPercentile(100),
         vulcan::listeners::PopulationPercentile()
@@ -34,8 +34,8 @@ int main() {
     auto store = vulcan::instantiate_feature_store(registry, config);
 
     vulcan_test::run_test("Global Percentile History", [&]() {
-        // Feed 0..99
-        for (int i = 0; i < 100; ++i) {
+        // The initial value 0, then 1..99
+        for (int i = 1; i < 100; ++i) {
             store.update(global_feat, static_cast<double>(i));
         }
 
@@ -68,9 +68,9 @@ int main() {
         // Obj 1: 10
         // Obj 2: 20
         // Obj 3: 30
-        store.update(obj_feat, obj{1}, 10.0);
-        store.update(obj_feat, obj{2}, 20.0);
-        store.update(obj_feat, obj{3}, 30.0);
+        store.add(obj{1}, {{obj_feat, 10.0}});
+        store.add(obj{2}, {{obj_feat, 20.0}});
+        store.add(obj{3}, {{obj_feat, 30.0}});
 
         // Median should be 20
         double dist_p50 = store.get_pop_percentile(obj_feat, 0.5);
@@ -87,15 +87,16 @@ int main() {
         // Add Obj 4: 5
         // State: 5, 20, 30, 100
         // Median (0.5 * 3 = 1.5 -> idx 1) -> 20
-        store.update(obj_feat, obj{4}, 5.0);
+        store.add(obj{4}, {{obj_feat, 5.0}});
         dist_p50 = store.get_pop_percentile(obj_feat, 0.5);
         TEST_ASSERT(approx(dist_p50, 20.0), "Population P50 (4 items) should be 20, got " + std::to_string(dist_p50));
     });
 
     vulcan_test::run_test("Combined Object Percentiles (Rolling + Population)", [&]() {
-        // Emit values
-        store.update(obj_combined_feat, obj{1}, 10.0);
-        store.update(obj_combined_feat, obj{2}, 20.0);
+        // A store of its own, so the population holds only objects 1 and 2
+        auto store = vulcan::instantiate_feature_store(registry, config);
+        store.add(obj{1}, {{obj_combined_feat, 10.0}});
+        store.add(obj{2}, {{obj_combined_feat, 20.0}});
         store.update(obj_combined_feat, obj{1}, 50.0);
 
         // Object 1 history [10.0, 50.0], P50 is 10.0 or 50.0
@@ -119,6 +120,21 @@ int main() {
         // Population: Obj1: 100.0, Obj2: 20.0
         pop_p50 = store.get_pop_percentile(obj_combined_feat, 0.5);
         TEST_ASSERT(approx(pop_p50, 20.0) || approx(pop_p50, 100.0), "Population P50 should be 20 or 100, got " + std::to_string(pop_p50));
+    });
+
+
+    vulcan_test::run_test("Population percentile of a group with no members is the initial value", []() {
+        vulcan::feature_registry registry;
+        registry.declare_group<obj>();
+        auto hits = registry.declare<double, obj>("hits", "Per-object hits", 3.0);
+        vulcan::store_config config;
+        config.add_listeners(hits, {vulcan::listeners::PopulationPercentile()});
+        auto fs = vulcan::instantiate_feature_store(registry, config);
+
+        TEST_ASSERT(fs.get_pop_percentile(hits, 0.5) == 3.0, "No members yet");
+        fs.add(obj{1}, {{hits, 10.0}});
+        fs.remove(obj{1});
+        TEST_ASSERT(fs.get_pop_percentile(hits, 0.5) == 3.0, "Every member removed");
     });
 
     return 0;

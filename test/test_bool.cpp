@@ -17,11 +17,11 @@ int main() {
     vulcan_test::run_test("Bool - Global RollingWindow returns bool", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto flag = registry.declare<bool>("flag", "Test flag");
+        auto flag = registry.declare<bool>("flag", "Test flag", false);
         config.add_listeners(flag, {vulcan::listeners::RollingWindow(3)});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
-        TEST_ASSERT(features.get_latest(flag) == false, "Unseen flag should read false");
+        TEST_ASSERT(features.get_latest(flag) == false, "Flag starts at its initial value");
         features.update(flag, true);
         features.update(flag, false);
         features.update(flag, true);
@@ -29,17 +29,17 @@ int main() {
         TEST_ASSERT(latest == true, "Latest should be true");
         TEST_ASSERT(features.get_kth_recent(flag, 1) == false, "Previous should be false");
         TEST_ASSERT(features.get_kth_recent(flag, 2) == true, "Oldest should be true");
-        TEST_ASSERT(features.get_kth_recent(flag, 3) == false, "Out of window should read false");
+        TEST_ASSERT(features.get_kth_recent(flag, 3) == true, "Past the window gives the oldest value");
     });
 
     vulcan_test::run_test("Bool - Global RollingCount counts trues in the window", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto flag = registry.declare<bool>("flag", "Test flag");
+        auto flag = registry.declare<bool>("flag", "Test flag", true);
         config.add_listeners(flag, {vulcan::listeners::RollingCount(4)});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
-        for (bool v : {true, true, false, true, false, false})
+        for (bool v : {true, false, true, false, false})
             features.update(flag, v);
         // last 4 updates: false, true, false, false
         TEST_ASSERT(features.get_count(flag, true) == 1, "One true in the last 4");
@@ -50,11 +50,11 @@ int main() {
     vulcan_test::run_test("Bool - Average and EWMA give the fraction of trues", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto flag = registry.declare<bool>("flag", "Test flag");
+        auto flag = registry.declare<bool>("flag", "Test flag", true);
         config.add_listeners(flag, {vulcan::listeners::Average(), vulcan::listeners::EWMA({0.5})});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
-        for (bool v : {true, false, true, true})
+        for (bool v : {false, true, true})
             features.update(flag, v);
         TEST_ASSERT(features.get_avg(flag) == 0.75, "Three of four updates were true");
         // EWMA(0.5): 1 -> 0.5 -> 0.75 -> 0.875
@@ -65,13 +65,13 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         registry.declare_group<obj>();
-        auto flag = registry.declare<bool, obj>("flag", "Per-object flag");
+        auto flag = registry.declare<bool, obj>("flag", "Per-object flag", false);
         config.add_listeners(flag, {vulcan::listeners::RollingWindow(2), vulcan::listeners::RollingCount(2)});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
+        features.add(obj{1}, {{flag, true}});
         features.update(flag, obj{1}, true);
-        features.update(flag, obj{1}, true);
-        features.update(flag, obj{2}, false);
+        features.add(obj{2});   // starts at the declared initial value, false
         TEST_ASSERT(features.get_latest(flag, obj{1}) == true, "Object 1 latest is true");
         TEST_ASSERT(features.get_latest(flag, obj{2}) == false, "Object 2 latest is false");
         TEST_ASSERT(features.get_count(flag, obj{1}, true) == 2, "Object 1 has two trues");
@@ -81,11 +81,10 @@ int main() {
     vulcan_test::run_test("Bool - MinMax gives any-true and all-true", []() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
-        auto flag = registry.declare<bool>("flag", "Test flag");
+        auto flag = registry.declare<bool>("flag", "Test flag", true);
         config.add_listeners(flag, {vulcan::listeners::MinMax()});
         auto features = vulcan::instantiate_feature_store(registry, config);
 
-        features.update(flag, true);
         features.update(flag, true);
         TEST_ASSERT(features.get_max(flag) == true && features.get_min(flag) == true, "All true so far");
         features.update(flag, false);
@@ -95,9 +94,9 @@ int main() {
 
     vulcan_test::run_test("Bool - Percentiles are rejected at construction", []() {
         vulcan::feature_registry registry;
-        auto g = registry.declare<bool>("g", "Global flag");
+        auto g = registry.declare<bool>("g", "Global flag", false);
         registry.declare_group<obj>();
-        auto o = registry.declare<bool, obj>("o", "Object flag");
+        auto o = registry.declare<bool, obj>("o", "Object flag", false);
 
         vulcan::store_config percentile;
         percentile.add_listeners(g, {vulcan::listeners::RollingPercentile(4)});
@@ -110,7 +109,7 @@ int main() {
 
     vulcan_test::run_test("Bool - Lookup checks the declared type", []() {
         vulcan::feature_registry registry;
-        registry.declare<bool>("flag", "Test flag");
+        registry.declare<bool>("flag", "Test flag", false);
         auto again = registry.lookup<bool>("flag");
         TEST_ASSERT(again.name == "flag", "Lookup as bool succeeds");
 

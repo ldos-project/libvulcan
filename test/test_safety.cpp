@@ -8,8 +8,8 @@ public:
     vulcan::feature_handle<int64_t> var2;
 
     TestFixture() {
-        var1 = registry.declare<double>("var1", "Test Double Variable");
-        var2 = registry.declare<int64_t>("var2", "Test Int Variable");
+        var1 = registry.declare<double>("var1", "Test Double Variable", 0.0);
+        var2 = registry.declare<int64_t>("var2", "Test Int Variable", 0);
     }
 
     vulcan::feature_store create_store(const vulcan::store_config& config) {
@@ -93,8 +93,8 @@ int main() {
         
         features.update(fixture.var2, beyond_max); // Implicitly converted to int64_t here
         
-        // Due to int64_t -> double conversion loss of precision in MinMax, we just ensure it wrapped to negative
-        TEST_ASSERT(features.get_max(fixture.var2) < 0, "Value beyond i64 should wrap around to negative due to int64_t cast");
+        // The wrapped value is below the initial value 0, so it is the minimum
+        TEST_ASSERT(features.get_min(fixture.var2) == expected_overflow, "Value beyond i64 should wrap around to negative due to int64_t cast");
     });
 
     return 0;

@@ -76,7 +76,7 @@ int main() {
     vulcan_test::run_test("Groups - remove drops the member's listener state", []() {
         vulcan::feature_registry registry;
         registry.declare_group<page>();
-        auto hits = registry.declare<double, page>("hits", "Per-page hits");
+        auto hits = registry.declare<double, page>("hits", "Per-page hits", 0.0);
         vulcan::store_config config;
         config.add_listeners(hits, {vulcan::listeners::RollingWindow(2), vulcan::listeners::Average(),
                                     vulcan::listeners::PopulationPercentile()});
@@ -94,16 +94,16 @@ int main() {
 
         fs.add(page{3});
         TEST_ASSERT(fs.get_latest(hits, page{3}) == 0.0 && fs.get_avg(hits, page{3}) == 0.0,
-                    "A member added again starts fresh");
+                    "A member added again starts at its initial value");
     });
 
     vulcan_test::run_test("Groups - remove leaves other groups and global features alone", []() {
         vulcan::feature_registry registry;
         registry.declare_group<page>();
         registry.declare_group<region>();
-        auto page_hits = registry.declare<double, page>("page_hits", "Per-page hits");
-        auto region_load = registry.declare<double, region>("region_load", "Per-region load");
-        auto load = registry.declare<double>("load", "System load");
+        auto page_hits = registry.declare<double, page>("page_hits", "Per-page hits", 0.0);
+        auto region_load = registry.declare<double, region>("region_load", "Per-region load", 0.0);
+        auto load = registry.declare<double>("load", "System load", 0.0);
         vulcan::store_config config;
         config.add_listeners(page_hits, {vulcan::listeners::RollingWindow(1)});
         config.add_listeners(region_load, {vulcan::listeners::RollingWindow(1)});
@@ -117,15 +117,38 @@ int main() {
         fs.update(load, 7.0);
 
         fs.remove(page{1});
+        fs.add(page{1});
         TEST_ASSERT(fs.get_latest(page_hits, page{1}) == 0.0, "The page's state is gone");
         TEST_ASSERT(fs.get_latest(region_load, region{1}) == 6.0, "The region with the same id is untouched");
         TEST_ASSERT(fs.get_latest(load) == 7.0, "Global features are untouched");
     });
 
+    vulcan_test::run_test("Non-members - reads and updates throw", []() {
+        vulcan::feature_registry registry;
+        registry.declare_group<page>();
+        auto hits = registry.declare<double, page>("hits", "Per-page hits", 0.0);
+        auto unwatched = registry.declare<double, page>("unwatched", "A feature with no listeners", 0.0);
+        vulcan::store_config config;
+        config.add_listeners(hits, {vulcan::listeners::RollingWindow(1)});
+        auto fs = vulcan::instantiate_feature_store(registry, config);
+        fs.add(page{1});
+
+        auto throws = [](auto f) {
+            try { f(); } catch (const std::logic_error&) { return true; }
+            return false;
+        };
+        TEST_ASSERT(throws([&] { fs.update(hits, page{2}, 1.0); }), "Update of a never-added page");
+        TEST_ASSERT(throws([&] { fs.get_latest(hits, page{2}); }), "Read of a never-added page");
+        TEST_ASSERT(throws([&] { fs.update(unwatched, page{2}, 1.0); }), "Update of a feature with no listeners");
+        fs.remove(page{1});
+        TEST_ASSERT(throws([&] { fs.update(hits, page{1}, 1.0); }), "Update of a removed page");
+        TEST_ASSERT(throws([&] { fs.get_latest(hits, page{1}); }), "Read of a removed page");
+    });
+
     vulcan_test::run_test("Groups - rank chooses among the store's current members", []() {
         vulcan::feature_registry registry;
         registry.declare_group<page>();
-        auto hits = registry.declare<double, page>("hits", "Per-page hits");
+        auto hits = registry.declare<double, page>("hits", "Per-page hits", 0.0);
         vulcan::store_config store_cfg;
         store_cfg.add_listeners(hits, {vulcan::listeners::RollingWindow(1)});
         vulcan::rank_config<page> config;
