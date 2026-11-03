@@ -25,23 +25,23 @@ test_safety: test/test_safety.cpp src/vulcan.o src/feature_registry.o src/featur
 	$(CXX) $(CXXFLAGS) -o test/test_safety.o test/test_safety.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
 
-test_minmaxavg: test/test_minmaxavg.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
-	$(CXX) $(CXXFLAGS) -o test/test_minmaxavg.o test/test_minmaxavg.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+test_min_max: test/listeners/test_min_max.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+	$(CXX) $(CXXFLAGS) -I./test -o test/listeners/test_min_max.o test/listeners/test_min_max.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
 
-test_rolling_window: test/test_rolling_window.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
-	$(CXX) $(CXXFLAGS) -o test/test_rolling_window.o test/test_rolling_window.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+test_rolling_window: test/listeners/test_rolling_window.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+	$(CXX) $(CXXFLAGS) -I./test -o test/listeners/test_rolling_window.o test/listeners/test_rolling_window.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
 
-test_percentile: test/test_percentile.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
-	$(CXX) $(CXXFLAGS) -o test/test_percentile.o test/test_percentile.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+test_population_percentile: test/listeners/test_population_percentile.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+	$(CXX) $(CXXFLAGS) -I./test -o test/listeners/test_population_percentile.o test/listeners/test_population_percentile.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
 
-test_count: test/test_count.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
-	$(CXX) $(CXXFLAGS) -o test/test_count.o test/test_count.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+test_rolling_count: test/listeners/test_rolling_count.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+	$(CXX) $(CXXFLAGS) -I./test -o test/listeners/test_rolling_count.o test/listeners/test_rolling_count.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
-test_ewma: test/test_ewma.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
-	$(CXX) $(CXXFLAGS) -o test/test_ewma.o test/test_ewma.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+test_ewma: test/listeners/test_ewma.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+	$(CXX) $(CXXFLAGS) -I./test -o test/listeners/test_ewma.o test/listeners/test_ewma.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
 test_bool: test/test_bool.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 	$(CXX) $(CXXFLAGS) -o test/test_bool.o test/test_bool.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
@@ -61,13 +61,13 @@ test_groups: test/test_groups.cpp src/vulcan.o src/feature_registry.o src/featur
 test_listener_configs: test/test_listener_configs.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 	$(CXX) $(CXXFLAGS) -o test/test_listener_configs.o test/test_listener_configs.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
-test: test_count test_minmaxavg test_percentile test_rolling_window test_safety test_ewma test_bool test_float test_int32 test_listener_configs test_groups test_initial_values
-	./test/test_count.o
-	./test/test_minmaxavg.o
-	./test/test_percentile.o
-	./test/test_rolling_window.o
+test: test_rolling_count test_min_max test_population_percentile test_rolling_window test_safety test_ewma test_bool test_float test_int32 test_listener_configs test_groups test_initial_values
+	./test/listeners/test_rolling_count.o
+	./test/listeners/test_min_max.o
+	./test/listeners/test_population_percentile.o
+	./test/listeners/test_rolling_window.o
 	./test/test_safety.o
-	./test/test_ewma.o
+	./test/listeners/test_ewma.o
 	./test/test_bool.o
 	./test/test_float.o
 	./test/test_int32.o
