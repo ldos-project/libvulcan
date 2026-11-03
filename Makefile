@@ -52,16 +52,16 @@ test_float: test/test_float.cpp src/vulcan.o src/feature_registry.o src/feature_
 test_int32: test/test_int32.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 	$(CXX) $(CXXFLAGS) -o test/test_int32.o test/test_int32.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
-test_initial_values: test/test_initial_values.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
-	$(CXX) $(CXXFLAGS) -o test/test_initial_values.o test/test_initial_values.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+test_initial_values: test/store/test_initial_values.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+	$(CXX) $(CXXFLAGS) -I./test -o test/store/test_initial_values.o test/store/test_initial_values.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
-test_groups: test/test_groups.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
-	$(CXX) $(CXXFLAGS) -o test/test_groups.o test/test_groups.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+test_groups: test/store/test_groups.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+	$(CXX) $(CXXFLAGS) -I./test -o test/store/test_groups.o test/store/test_groups.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
-test_listener_configs: test/test_listener_configs.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
-	$(CXX) $(CXXFLAGS) -o test/test_listener_configs.o test/test_listener_configs.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+test_configs: test/listeners/test_configs.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+	$(CXX) $(CXXFLAGS) -I./test -o test/listeners/test_configs.o test/listeners/test_configs.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
-test: test_rolling_count test_min_max test_population_percentile test_rolling_window test_safety test_ewma test_bool test_float test_int32 test_listener_configs test_groups test_initial_values
+test: test_rolling_count test_min_max test_population_percentile test_rolling_window test_safety test_ewma test_bool test_float test_int32 test_configs test_groups test_initial_values
 	./test/listeners/test_rolling_count.o
 	./test/listeners/test_min_max.o
 	./test/listeners/test_population_percentile.o
@@ -71,9 +71,9 @@ test: test_rolling_count test_min_max test_population_percentile test_rolling_wi
 	./test/test_bool.o
 	./test/test_float.o
 	./test/test_int32.o
-	./test/test_listener_configs.o
-	./test/test_groups.o
-	./test/test_initial_values.o
+	./test/listeners/test_configs.o
+	./test/store/test_groups.o
+	./test/store/test_initial_values.o
 
 src/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
