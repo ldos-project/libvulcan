@@ -14,17 +14,12 @@ int main() {
     vulcan::feature_registry registry;
     vulcan::store_config config;
     
-    // 1. Global Feature with Percentile History
-    auto global_feat = registry.declare<double>("g_load", "Global Load", 0.0);
-    // Window of 100
-    config.add_listeners(global_feat, {vulcan::listeners::RollingPercentile(100)});
-
-    // 2. Object Feature with Population Distribution
+    // 1. Object Feature with Population Distribution
     registry.declare_group<obj>();
     auto obj_feat = registry.declare<double, obj>("o_temp", "Object Temp", 0.0);
     config.add_listeners(obj_feat, {vulcan::listeners::PopulationPercentile()});
 
-    // 3. Object Feature with Both Percentiles
+    // 2. Object Feature with Both Percentiles
     auto obj_combined_feat = registry.declare<double, obj>("o_comb", "Object Combined", 0.0);
     config.add_listeners(obj_combined_feat, {
         vulcan::listeners::RollingPercentile(100),
@@ -32,36 +27,6 @@ int main() {
     });
 
     auto store = vulcan::instantiate_feature_store(registry, config);
-
-    vulcan_test::run_test("Global Percentile History", [&]() {
-        // The initial value 0, then 1..99
-        for (int i = 1; i < 100; ++i) {
-            store.update(global_feat, static_cast<double>(i));
-        }
-
-        double p50 = store.get_temporal_percentile(global_feat, 0.5);
-        double p90 = store.get_temporal_percentile(global_feat, 0.9);
-        double p0 = store.get_temporal_percentile(global_feat, 0.0);
-        double p100 = store.get_temporal_percentile(global_feat, 1.0);
-
-        // median of 0..99 is 49 or 50. Our implementation is p * (size-1) idx.
-        // 0.5 * 99 = 49.5 -> 49 (floor) due to static_cast. 
-        // Or if tree uses find_by_order(49). Value at 49 is 49.
-        
-        TEST_ASSERT(approx(p50, 49.0) || approx(p50, 50.0), "Global P50 should be around 49-50, got " + std::to_string(p50));
-        TEST_ASSERT(approx(p90, 89.0) || approx(p90, 90.0), "Global P90 should be around 89-90, got " + std::to_string(p90));
-        TEST_ASSERT(approx(p0, 0.0), "Global Min should be 0");
-        TEST_ASSERT(approx(p100, 99.0), "Global Max should be 99");
-
-        // Test Sliding Window (Add 100..199, pushing out 0..99)
-        for (int i = 100; i < 200; ++i) {
-             store.update(global_feat, static_cast<double>(i));
-        }
-        
-        // Window should be 100..199
-        double p50_new = store.get_temporal_percentile(global_feat, 0.5);
-        TEST_ASSERT(p50_new >= 149.0, "Global P50 after slide should be ~149, got " + std::to_string(p50_new));
-    });
 
     vulcan_test::run_test("Object Population Distribution", [&]() {
         // Initial state:
@@ -135,6 +100,33 @@ int main() {
         fs.add(obj{1}, {{hits, 10.0}});
         fs.remove(obj{1});
         TEST_ASSERT(fs.get_pop_percentile(hits, 0.5) == 3.0, "Every member removed");
+    });
+
+
+    vulcan_test::run_test("PopulationPercentile - float and int32 features", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        registry.declare_group<obj>();
+        auto x = registry.declare<float, obj>("x", "Per-object float", 0.0f);
+        auto n = registry.declare<int32_t, obj>("n", "Per-object int32", 0);
+        config.add_listeners(x, {vulcan::listeners::PopulationPercentile()});
+        config.add_listeners(n, {vulcan::listeners::PopulationPercentile()});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        features.add(obj{1}, {{x, 1.5f}, {n, 10}});
+        features.add(obj{2}, {{x, 3.5f}, {n, 30}});
+        features.add(obj{3}, {{x, 2.5f}, {n, 20}});
+        TEST_ASSERT(features.get_pop_percentile(x, 0.5) == 2.5, "Median of 1.5, 2.5, 3.5");
+        TEST_ASSERT(features.get_pop_percentile(n, 0.5) == 20.0, "Median of 10, 20, 30");
+    });
+
+    vulcan_test::run_test("PopulationPercentile - bool features are rejected at construction", []() {
+        vulcan::feature_registry registry;
+        registry.declare_group<obj>();
+        auto o = registry.declare<bool, obj>("o", "Object flag", false);
+        vulcan::store_config config;
+        config.add_listeners(o, {vulcan::listeners::PopulationPercentile()});
+        TEST_ASSERT(vulcan_test::construction_throws(registry, config), "PopulationPercentile on bool should be rejected");
     });
 
     return 0;

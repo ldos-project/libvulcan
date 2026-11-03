@@ -63,5 +63,56 @@ int main() {
 
     });
 
+
+    vulcan_test::run_test("RollingCount - bool features count trues in the window", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        auto flag = registry.declare<bool>("flag", "Test flag", true);
+        config.add_listeners(flag, {vulcan::listeners::RollingCount(4)});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        for (bool v : {true, false, true, false, false})
+            features.update(flag, v);
+        // last 4 updates: false, true, false, false
+        TEST_ASSERT(features.get_count(flag, true) == 1, "One true in the last 4");
+        TEST_ASSERT(features.get_count(flag, false) == 3, "Three falses in the last 4");
+        TEST_ASSERT(features.contains(flag, true), "Window contains a true");
+    });
+
+    vulcan_test::run_test("RollingCount - bool members are counted separately", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        registry.declare_group<obj>();
+        auto flag = registry.declare<bool, obj>("flag", "Per-object flag", false);
+        config.add_listeners(flag, {vulcan::listeners::RollingCount(2)});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        features.add(obj{1}, {{flag, true}});
+        features.update(flag, obj{1}, true);
+        features.add(obj{2});   // starts at the declared initial value, false
+        TEST_ASSERT(features.get_count(flag, obj{1}, true) == 2, "Object 1 has two trues");
+        TEST_ASSERT(features.get_count(flag, obj{2}, true) == 0, "Object 2 has no trues");
+    });
+
+    vulcan_test::run_test("RollingCount - int32 features", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        auto n = registry.declare<int32_t>("n", "Test int32", 7);
+        config.add_listeners(n, {vulcan::listeners::RollingCount(3)});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        for (int32_t v : {2, 7, 7})
+            features.update(n, v);
+        TEST_ASSERT(features.get_count(n, 7) == 2, "Two 7s in the last 3");
+    });
+
+    vulcan_test::run_test("RollingCount - float features are rejected at construction", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        auto x = registry.declare<float>("x", "Test float", 0.0f);
+        config.add_listeners(x, {vulcan::listeners::RollingCount(3)});
+        TEST_ASSERT(vulcan_test::construction_throws(registry, config), "RollingCount on float should be rejected");
+    });
+
     return 0;
 }

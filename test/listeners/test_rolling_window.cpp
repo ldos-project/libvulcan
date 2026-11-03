@@ -197,5 +197,71 @@ int main() {
                     "Window holds 2, 3: k = 1 and beyond give 2");
     });
 
+
+    vulcan_test::run_test("RollingWindow - bool features return bool", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        auto flag = registry.declare<bool>("flag", "Test flag", false);
+        config.add_listeners(flag, {vulcan::listeners::RollingWindow(3)});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        TEST_ASSERT(features.get_latest(flag) == false, "Flag starts at its initial value");
+        features.update(flag, true);
+        features.update(flag, false);
+        features.update(flag, true);
+        bool latest = features.get_latest(flag);
+        TEST_ASSERT(latest == true, "Latest should be true");
+        TEST_ASSERT(features.get_kth_recent(flag, 1) == false, "Previous should be false");
+        TEST_ASSERT(features.get_kth_recent(flag, 2) == true, "Oldest should be true");
+    });
+
+    vulcan_test::run_test("RollingWindow - float features return float values exactly", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        auto x = registry.declare<float>("x", "Test float", 0.1f);
+        config.add_listeners(x, {vulcan::listeners::RollingWindow(3)});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        features.update(x, 2.5f);
+        float latest = features.get_latest(x);
+        TEST_ASSERT(latest == 2.5f, "Latest should be 2.5f");
+        TEST_ASSERT(features.get_kth_recent(x, 1) == 0.1f, "Previous should be exactly 0.1f");
+    });
+
+    vulcan_test::run_test("RollingWindow - int32 features", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        auto n = registry.declare<int32_t>("n", "Test int32", 7);
+        config.add_listeners(n, {vulcan::listeners::RollingWindow(3)});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        for (int32_t v : {2, 7, 7})
+            features.update(n, v);
+        int32_t latest = features.get_latest(n);
+        TEST_ASSERT(latest == 7, "Latest is 7");
+        TEST_ASSERT(features.get_kth_recent(n, 2) == 2, "Two back is 2");
+    });
+
+    vulcan_test::run_test("RollingWindow - bool, float and int32 members keep separate windows", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        registry.declare_group<obj>();
+        auto flag = registry.declare<bool, obj>("flag", "Per-object flag", false);
+        auto x = registry.declare<float, obj>("x", "Per-object float", 0.0f);
+        auto n = registry.declare<int32_t, obj>("n", "Per-object int32", 0);
+        config.add_listeners(flag, {vulcan::listeners::RollingWindow(2)});
+        config.add_listeners(x, {vulcan::listeners::RollingWindow(2)});
+        config.add_listeners(n, {vulcan::listeners::RollingWindow(2)});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        features.add(obj{1}, {{flag, true}, {x, 1.5f}, {n, 10}});
+        features.update(flag, obj{1}, true);
+        features.add(obj{2}, {{x, 3.5f}, {n, 30}});   // flag starts at the declared initial value, false
+        TEST_ASSERT(features.get_latest(flag, obj{1}) == true, "Object 1 flag latest is true");
+        TEST_ASSERT(features.get_latest(flag, obj{2}) == false, "Object 2 flag latest is false");
+        TEST_ASSERT(features.get_latest(x, obj{2}) == 3.5f, "Object 2 float latest");
+        TEST_ASSERT(features.get_latest(n, obj{2}) == 30, "Object 2 int32 latest");
+    });
+
     return 0;
 }

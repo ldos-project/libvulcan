@@ -117,5 +117,32 @@ int main() {
         TEST_ASSERT(std::abs(fs.get_ewma(var, obj{7}, 0.5) - 6.0) < 1e-9, "Object int path alpha=0.5 after [4,8] should be 6.0");
     });
 
+
+    vulcan_test::run_test("EWMA - bool features give a decayed fraction of trues", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        auto flag = registry.declare<bool>("flag", "Test flag", true);
+        config.add_listeners(flag, {vulcan::listeners::EWMA({0.5})});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        for (bool v : {false, true, true})
+            features.update(flag, v);
+        // EWMA(0.5): 1 -> 0.5 -> 0.75 -> 0.875
+        TEST_ASSERT(features.get_ewma(flag, 0.5) == 0.875, "EWMA of 1,0,1,1 at alpha 0.5");
+    });
+
+    vulcan_test::run_test("EWMA - float features", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        auto x = registry.declare<float>("x", "Test float", 1.0f);
+        config.add_listeners(x, {vulcan::listeners::EWMA({0.5})});
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        for (float v : {4.0f, 2.0f, 3.0f})
+            features.update(x, v);
+        // EWMA(0.5): 1 -> 2.5 -> 2.25 -> 2.625
+        TEST_ASSERT(features.get_ewma(x, 0.5) == 2.625, "EWMA of 1,4,2,3 at alpha 0.5");
+    });
+
     return 0;
 }
