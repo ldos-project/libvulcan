@@ -5,7 +5,7 @@
 #include <initializer_list>
 #include <sstream>
 
-// Listener configurations: what the evolve block passes to store_config::add_listeners.
+// Listener configurations: what the evolve block passes to store_config::add_listener.
 // One config type per listener serves global and per-object features alike. describe()
 // documents the listener kind for the prompt, with getters for either kind of feature;
 // to_string() prints one configured listener as the code that creates it.

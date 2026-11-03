@@ -12,7 +12,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto global_feat = registry.declare<double>("g_load", "Global Load", 0.0);
-        config.add_listeners(global_feat, {vulcan::listeners::RollingPercentile(100)});   // window of 100
+        config.add_listener(global_feat, vulcan::listeners::RollingPercentile(100));   // window of 100
         auto store = vulcan::instantiate_feature_store(registry, config);
 
         // The initial value 0, then 1..99
@@ -48,7 +48,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto x = registry.declare<float>("x", "Test float", 1.0f);
-        config.add_listeners(x, {vulcan::listeners::RollingPercentile(4)});
+        config.add_listener(x, vulcan::listeners::RollingPercentile(4));
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (float v : {4.0f, 2.0f, 3.0f})
@@ -60,7 +60,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto n = registry.declare<int32_t>("n", "Test int32", -5);
-        config.add_listeners(n, {vulcan::listeners::RollingPercentile(4)});
+        config.add_listener(n, vulcan::listeners::RollingPercentile(4));
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (int32_t v : {10, 3, 2147483647})
@@ -68,12 +68,8 @@ int main() {
         TEST_ASSERT(features.get_temporal_percentile(n, 0.0) == -5.0, "p0 is -5");
     });
 
-    vulcan_test::run_test("RollingPercentile - bool features are rejected at construction", []() {
-        vulcan::feature_registry registry;
-        auto g = registry.declare<bool>("g", "Global flag", false);
-        vulcan::store_config config;
-        config.add_listeners(g, {vulcan::listeners::RollingPercentile(4)});
-        TEST_ASSERT(vulcan_test::construction_throws(registry, config), "RollingPercentile on bool should be rejected");
+    vulcan_test::run_test("RollingPercentile - bool features do not compile", []() {
+        static_assert(!vulcan_test::can_attach<vulcan::feature_handle<bool>, vulcan::listeners::RollingPercentile>);
     });
 
     return 0;

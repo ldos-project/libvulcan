@@ -14,7 +14,7 @@ int main() {
         auto user_decisions   = registry.declare<int64_t, obj>("user_decisions", "Object Tracking", 0);
 
         // Track last 3 global decisions
-        config.add_listeners(global_decisions, {vulcan::listeners::RollingCount(3)});
+        config.add_listener(global_decisions, vulcan::listeners::RollingCount(3));
 
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
@@ -44,7 +44,7 @@ int main() {
 
         vulcan::store_config config;
 
-        config.add_listeners(user_decisions, {vulcan::listeners::RollingCount(2)});
+        config.add_listener(user_decisions, vulcan::listeners::RollingCount(2));
 
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
@@ -68,7 +68,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto flag = registry.declare<bool>("flag", "Test flag", true);
-        config.add_listeners(flag, {vulcan::listeners::RollingCount(4)});
+        config.add_listener(flag, vulcan::listeners::RollingCount(4));
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (bool v : {true, false, true, false, false})
@@ -84,7 +84,7 @@ int main() {
         vulcan::store_config config;
         registry.declare_group<obj>();
         auto flag = registry.declare<bool, obj>("flag", "Per-object flag", false);
-        config.add_listeners(flag, {vulcan::listeners::RollingCount(2)});
+        config.add_listener(flag, vulcan::listeners::RollingCount(2));
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         features.add(obj{1}, {{flag, true}});
@@ -98,7 +98,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto n = registry.declare<int32_t>("n", "Test int32", 7);
-        config.add_listeners(n, {vulcan::listeners::RollingCount(3)});
+        config.add_listener(n, vulcan::listeners::RollingCount(3));
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (int32_t v : {2, 7, 7})
@@ -106,12 +106,9 @@ int main() {
         TEST_ASSERT(features.get_count(n, 7) == 2, "Two 7s in the last 3");
     });
 
-    vulcan_test::run_test("RollingCount - float features are rejected at construction", []() {
-        vulcan::feature_registry registry;
-        vulcan::store_config config;
-        auto x = registry.declare<float>("x", "Test float", 0.0f);
-        config.add_listeners(x, {vulcan::listeners::RollingCount(3)});
-        TEST_ASSERT(vulcan_test::construction_throws(registry, config), "RollingCount on float should be rejected");
+    vulcan_test::run_test("RollingCount - float and double features do not compile", []() {
+        static_assert(!vulcan_test::can_attach<vulcan::feature_handle<float>, vulcan::listeners::RollingCount>);
+        static_assert(!vulcan_test::can_attach<vulcan::feature_handle<double>, vulcan::listeners::RollingCount>);
     });
 
     return 0;

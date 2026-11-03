@@ -17,14 +17,12 @@ int main() {
     // 1. Object Feature with Population Distribution
     registry.declare_group<obj>();
     auto obj_feat = registry.declare<double, obj>("o_temp", "Object Temp", 0.0);
-    config.add_listeners(obj_feat, {vulcan::listeners::PopulationPercentile()});
+    config.add_listener(obj_feat, vulcan::listeners::PopulationPercentile());
 
     // 2. Object Feature with Both Percentiles
     auto obj_combined_feat = registry.declare<double, obj>("o_comb", "Object Combined", 0.0);
-    config.add_listeners(obj_combined_feat, {
-        vulcan::listeners::RollingPercentile(100),
-        vulcan::listeners::PopulationPercentile()
-    });
+    config.add_listener(obj_combined_feat, vulcan::listeners::RollingPercentile(100))
+        .add_listener(obj_combined_feat, vulcan::listeners::PopulationPercentile());
 
     auto store = vulcan::instantiate_feature_store(registry, config);
 
@@ -93,7 +91,7 @@ int main() {
         registry.declare_group<obj>();
         auto hits = registry.declare<double, obj>("hits", "Per-object hits", 3.0);
         vulcan::store_config config;
-        config.add_listeners(hits, {vulcan::listeners::PopulationPercentile()});
+        config.add_listener(hits, vulcan::listeners::PopulationPercentile());
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
         TEST_ASSERT(fs.get_pop_percentile(hits, 0.5) == 3.0, "No members yet");
@@ -109,8 +107,8 @@ int main() {
         registry.declare_group<obj>();
         auto x = registry.declare<float, obj>("x", "Per-object float", 0.0f);
         auto n = registry.declare<int32_t, obj>("n", "Per-object int32", 0);
-        config.add_listeners(x, {vulcan::listeners::PopulationPercentile()});
-        config.add_listeners(n, {vulcan::listeners::PopulationPercentile()});
+        config.add_listener(x, vulcan::listeners::PopulationPercentile());
+        config.add_listener(n, vulcan::listeners::PopulationPercentile());
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         features.add(obj{1}, {{x, 1.5f}, {n, 10}});
@@ -120,13 +118,13 @@ int main() {
         TEST_ASSERT(features.get_pop_percentile(n, 0.5) == 20.0, "Median of 10, 20, 30");
     });
 
-    vulcan_test::run_test("PopulationPercentile - bool features are rejected at construction", []() {
-        vulcan::feature_registry registry;
-        registry.declare_group<obj>();
-        auto o = registry.declare<bool, obj>("o", "Object flag", false);
-        vulcan::store_config config;
-        config.add_listeners(o, {vulcan::listeners::PopulationPercentile()});
-        TEST_ASSERT(vulcan_test::construction_throws(registry, config), "PopulationPercentile on bool should be rejected");
+    vulcan_test::run_test("PopulationPercentile - bool features do not compile", []() {
+        static_assert(!vulcan_test::can_attach<vulcan::feature_handle<bool, obj>, vulcan::listeners::PopulationPercentile>);
+    });
+
+    vulcan_test::run_test("PopulationPercentile - global features do not compile", []() {
+        static_assert(!vulcan_test::can_attach<vulcan::feature_handle<double>, vulcan::listeners::PopulationPercentile>);
+        static_assert(vulcan_test::can_attach<vulcan::feature_handle<double, obj>, vulcan::listeners::PopulationPercentile>);
     });
 
     return 0;

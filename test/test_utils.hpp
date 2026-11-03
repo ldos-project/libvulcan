@@ -23,16 +23,9 @@ namespace vulcan_test {
 #define RED   "\033[31m"
 #define RESET "\033[0m"
 
-// True if building a store from this registry and config is rejected, e.g. a listener on a value type it
-// does not accept
-inline bool construction_throws(const vulcan::feature_registry& registry, const vulcan::store_config& config) {
-    try {
-        auto features = vulcan::instantiate_feature_store(registry, config);
-    } catch (const std::invalid_argument&) {
-        return true;
-    }
-    return false;
-}
+// True if listener config C can be attached to a feature with handle type H; false if the call does not compile
+template <typename H, typename C>
+constexpr bool can_attach = requires(vulcan::store_config config, H h, C c) { config.add_listener(h, c); };
 
 inline void run_test(const std::string& name, std::function<void(void)> test_func) {
     try {

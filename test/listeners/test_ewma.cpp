@@ -10,7 +10,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto var = registry.declare<double>("g_val", "Global value", 10.0);
-        config.add_listeners(var, {vulcan::listeners::EWMA({0.1, 0.5})});
+        config.add_listener(var, vulcan::listeners::EWMA({0.1, 0.5}));
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
         // Before any update, EWMA equals the initial value exactly
@@ -22,7 +22,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto var = registry.declare<double>("g_val", "Global value", 10.0);
-        config.add_listeners(var, {vulcan::listeners::EWMA({0.1, 0.5})});
+        config.add_listener(var, vulcan::listeners::EWMA({0.1, 0.5}));
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
         // Start at the initial value 10, then feed 20 and 30
@@ -43,7 +43,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto var = registry.declare<int64_t>("g_int", "Global int", 4);
-        config.add_listeners(var, {vulcan::listeners::EWMA({0.5})});
+        config.add_listener(var, vulcan::listeners::EWMA({0.5}));
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
         fs.update(var, (int64_t)8);
@@ -56,7 +56,7 @@ int main() {
         vulcan::store_config config;
         registry.declare_group<obj>();
         auto var = registry.declare<double, obj>("obj_val", "Per-object value", 0.0);
-        config.add_listeners(var, {vulcan::listeners::EWMA({0.2, 0.8})});
+        config.add_listener(var, vulcan::listeners::EWMA({0.2, 0.8}));
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
         bool threw = false;
@@ -82,7 +82,7 @@ int main() {
         vulcan::store_config config;
         registry.declare_group<obj>();
         auto var = registry.declare<double, obj>("obj_val", "Per-object value", 0.0);
-        config.add_listeners(var, {vulcan::listeners::EWMA({0.2, 0.8})});
+        config.add_listener(var, vulcan::listeners::EWMA({0.2, 0.8}));
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
         fs.add(obj{1}, {{var, 5.0}});
@@ -108,7 +108,7 @@ int main() {
         vulcan::store_config config;
         registry.declare_group<obj>();
         auto var = registry.declare<int64_t, obj>("obj_int", "Per-object int", 0);
-        config.add_listeners(var, {vulcan::listeners::EWMA({0.5})});
+        config.add_listener(var, vulcan::listeners::EWMA({0.5}));
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
         fs.add(obj{7}, {{var, 4}});
@@ -122,7 +122,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto flag = registry.declare<bool>("flag", "Test flag", true);
-        config.add_listeners(flag, {vulcan::listeners::EWMA({0.5})});
+        config.add_listener(flag, vulcan::listeners::EWMA({0.5}));
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (bool v : {false, true, true})
@@ -135,7 +135,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto x = registry.declare<float>("x", "Test float", 1.0f);
-        config.add_listeners(x, {vulcan::listeners::EWMA({0.5})});
+        config.add_listener(x, vulcan::listeners::EWMA({0.5}));
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (float v : {4.0f, 2.0f, 3.0f})

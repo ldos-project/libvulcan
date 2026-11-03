@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <type_traits>
 #include <variant>
 #include <vector>
 #include "listeners.hpp"
@@ -58,6 +59,10 @@ template <typename G> struct group_traits;   // defined for each group by VULCAN
 
 // The group of global features: a feature keyed by no_group has a single value.
 struct no_group {};
+
+// True for an object group, false for no_group (the group of global features)
+template <typename G>
+concept keyed = !std::is_same_v<G, no_group>;
 
 // The group index of no_group, where real groups are indexed from 0
 inline constexpr int no_group_index = -1;

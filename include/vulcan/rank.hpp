@@ -149,7 +149,7 @@ public:
         }
 
         ss << "--- Listeners ---\n";
-        ss << "To use a feature in your scoring function, you must attach one or more **listeners** to it. Listeners collect and process data for a feature, exposing **query functions** (e.g. rolling averages, min/max, percentiles) that you call from inside your scoring function. By default, no listeners are attached to any feature, meaning no data is collected. Calling a query without attaching the corresponding listener causes a runtime error. Global features take global listeners; per-object features take object listeners. Attach with: store_cfg.add_listeners(handle, {listener1, listener2, ...});\n\n";
+        ss << "To use a feature in your scoring function, you must attach one or more **listeners** to it. Listeners collect and process data for a feature, exposing **query functions** (e.g. rolling averages, min/max, percentiles) that you call from inside your scoring function. By default, no listeners are attached to any feature, meaning no data is collected. Calling a query without attaching the corresponding listener causes a runtime error. Global features take global listeners; per-object features take object listeners. Attach with: store_cfg.add_listener(handle, listener1).add_listener(handle, listener2);\n\n";
         ss << "Listeners that can be attached to global features:\n";
         for (const auto& doc : feature_registry::get_available_listeners(feature_desc::scope_type::global)) {
             ss << "  " << doc << "\n";
@@ -163,8 +163,8 @@ public:
 
         ss << "--- Expected Output ---\n";
         ss << "1. Listener configuration — attach listeners to each feature you want to use.\n";
-        ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::RollingWindow(5)});\n";
-        ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::RollingPercentile(100)});\n\n";
+        ss << "     store_cfg.add_listener(handle, vulcan::listeners::RollingWindow(5));\n";
+        ss << "     store_cfg.add_listener(handle, vulcan::listeners::RollingPercentile(100));\n\n";
         ss << "2. Scoring function — this IS your heuristic. Called once per candidate, returns a scalar. Vulcan ranks all candidates by this score and selects the winner via your comparator.\n";
         ss << "     auto fn = [&](const vulcan::feature_store& fs, " << group_traits<G>::name << " obj) -> double {\n";
         ss << "         // per-object: fs.get_latest(handle, obj), fs.get_window_avg(handle, obj), ...\n";

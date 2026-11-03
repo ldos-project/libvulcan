@@ -25,10 +25,6 @@
 
 namespace vulcan {
 
-// True for an object group, false for no_group (the group of global features)
-template <typename G>
-concept keyed = !std::is_same_v<G, no_group>;
-
 // A value for one feature of a member of G, passed to feature_store::add in place of the feature's declared
 // initial value: store.add(page{42}, {{size, 4096}}). The handle's group must be G.
 template <typename G>

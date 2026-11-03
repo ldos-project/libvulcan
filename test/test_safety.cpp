@@ -43,10 +43,8 @@ int main() {
     vulcan_test::run_test("Duplicate Listener Enforcement", []() {
         TestFixture fixture;
         vulcan::store_config config;
-        config.add_listeners(fixture.var1, {
-            vulcan::listeners::RollingCount(3),
-            vulcan::listeners::RollingCount(5) // duplicate type
-        });
+        config.add_listener(fixture.var1, vulcan::listeners::RollingWindow(3))
+            .add_listener(fixture.var1, vulcan::listeners::RollingWindow(5));   // duplicate type
         
         bool threw_exception = false;
         try {
@@ -61,9 +59,7 @@ int main() {
         TestFixture fixture;
         vulcan::store_config config;
         
-        config.add_listeners(fixture.var2, {
-            vulcan::listeners::MinMax()
-        });
+        config.add_listener(fixture.var2, vulcan::listeners::MinMax());
         
         auto features = fixture.create_store(config);
         
@@ -82,9 +78,7 @@ int main() {
         TestFixture fixture;
         vulcan::store_config config;
         
-        config.add_listeners(fixture.var2, {
-            vulcan::listeners::MinMax()
-        });
+        config.add_listener(fixture.var2, vulcan::listeners::MinMax());
         auto features = fixture.create_store(config);
         
         // Beyond i64 max: uint64_t converted to int64_t

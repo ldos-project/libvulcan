@@ -46,10 +46,11 @@ int main() {
     vulcan::rank_config<ssd> config;
 
     // EVOLVE-BLOCK-START
-    store_cfg.add_listeners(system_load, {vulcan::listeners::RollingWindow(1), vulcan::listeners::RollingPercentile(100)});
-    store_cfg.add_listeners(latency, {vulcan::listeners::RollingWindow(5)});
-    store_cfg.add_listeners(temp, {vulcan::listeners::RollingWindow(5)});
-    store_cfg.add_listeners(chosen_last, {vulcan::listeners::RollingWindow(1)});
+    store_cfg.add_listener(system_load, vulcan::listeners::RollingWindow(1))
+        .add_listener(system_load, vulcan::listeners::RollingPercentile(100));
+    store_cfg.add_listener(latency, vulcan::listeners::RollingWindow(5));
+    store_cfg.add_listener(temp, vulcan::listeners::RollingWindow(5));
+    store_cfg.add_listener(chosen_last, vulcan::listeners::RollingWindow(1));
     auto scoring_fn = [&](const vulcan::feature_store& fs, ssd obj_id) -> double {
         double l = fs.get_latest(latency, obj_id);
         double t = fs.get_latest(temp, obj_id);

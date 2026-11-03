@@ -7,7 +7,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto var1 = registry.declare<double>("var1", "Test feature", 0.0);
-        config.add_listeners(var1, {vulcan::listeners::Average()});
+        config.add_listener(var1, vulcan::listeners::Average());
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         double sum = 0;
@@ -26,7 +26,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto flag = registry.declare<bool>("flag", "Test flag", true);
-        config.add_listeners(flag, {vulcan::listeners::Average()});
+        config.add_listener(flag, vulcan::listeners::Average());
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (bool v : {false, true, true})
@@ -38,7 +38,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto x = registry.declare<float>("x", "Test float", 1.0f);
-        config.add_listeners(x, {vulcan::listeners::Average()});
+        config.add_listener(x, vulcan::listeners::Average());
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (float v : {4.0f, 2.0f, 3.0f})
@@ -50,7 +50,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto n = registry.declare<int32_t>("n", "Test int32", -5);
-        config.add_listeners(n, {vulcan::listeners::Average()});
+        config.add_listener(n, vulcan::listeners::Average());
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (int32_t v : {10, 3, 2147483647})

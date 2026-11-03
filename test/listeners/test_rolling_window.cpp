@@ -9,7 +9,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto var1 = registry.declare<double>("var1", "Test feature", 0.0);
-        config.add_listeners(var1, {vulcan::listeners::RollingWindow(5)});
+        config.add_listener(var1, vulcan::listeners::RollingWindow(5));
 
         auto features = vulcan::instantiate_feature_store(registry, config);
         
@@ -36,7 +36,7 @@ int main() {
         
         // Add listeners
         vulcan::store_config config;
-        config.add_listeners(obj_val, {vulcan::listeners::RollingWindow(3)});
+        config.add_listener(obj_val, vulcan::listeners::RollingWindow(3));
         
         auto store = vulcan::instantiate_feature_store(registry, config);
         store.add(obj{1});
@@ -61,7 +61,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto var1 = registry.declare<int64_t>("var1_i64", "Test i64 feature", 0);
-        config.add_listeners(var1, {vulcan::listeners::RollingWindow(5)});
+        config.add_listener(var1, vulcan::listeners::RollingWindow(5));
 
         auto features = vulcan::instantiate_feature_store(registry, config);
 
@@ -80,7 +80,7 @@ int main() {
         vulcan::store_config config;
         int64_t large = (1LL << 53) + 1;
         auto var1 = registry.declare<int64_t>("big_i64", "Large i64 feature", large);
-        config.add_listeners(var1, {vulcan::listeners::RollingWindow(3)});
+        config.add_listener(var1, vulcan::listeners::RollingWindow(3));
 
         auto features = vulcan::instantiate_feature_store(registry, config);
 
@@ -97,7 +97,7 @@ int main() {
         auto obj_val = registry.declare<int64_t, obj>("obj_i64", "Object i64 feature", 0);
 
         vulcan::store_config config;
-        config.add_listeners(obj_val, {vulcan::listeners::RollingWindow(3)});
+        config.add_listener(obj_val, vulcan::listeners::RollingWindow(3));
 
         auto store = vulcan::instantiate_feature_store(registry, config);
         store.add(obj{1});
@@ -123,8 +123,8 @@ int main() {
         auto obj_i64 = registry.declare<int64_t, obj>("obj_i64_w0", "Object i64 unbounded window", 0);
 
         vulcan::store_config config;
-        config.add_listeners(obj_val, {vulcan::listeners::RollingWindow(0)});
-        config.add_listeners(obj_i64, {vulcan::listeners::RollingWindow(0)});
+        config.add_listener(obj_val, vulcan::listeners::RollingWindow(0));
+        config.add_listener(obj_i64, vulcan::listeners::RollingWindow(0));
 
         auto store = vulcan::instantiate_feature_store(registry, config);
         store.add(obj{1});
@@ -148,9 +148,10 @@ int main() {
         registry.declare_group<obj>();
         auto o = registry.declare<double, obj>("o", "Object value", 1.0);
         auto both = registry.declare<double>("both", "Average and RollingWindow", 1.0);
-        config.add_listeners(g, {vulcan::listeners::RollingWindow(3)});
-        config.add_listeners(o, {vulcan::listeners::RollingWindow(2)});
-        config.add_listeners(both, {vulcan::listeners::Average(), vulcan::listeners::RollingWindow(2)});
+        config.add_listener(g, vulcan::listeners::RollingWindow(3));
+        config.add_listener(o, vulcan::listeners::RollingWindow(2));
+        config.add_listener(both, vulcan::listeners::Average())
+            .add_listener(both, vulcan::listeners::RollingWindow(2));
         auto features = vulcan::instantiate_feature_store(registry, config);
         features.add(obj{7});
 
@@ -183,8 +184,8 @@ int main() {
         vulcan::store_config config;
         auto partial = registry.declare<double>("partial", "Window not yet full", 1.0);
         auto full = registry.declare<double>("full", "Window full", 1.0);
-        config.add_listeners(partial, {vulcan::listeners::RollingWindow(5)});
-        config.add_listeners(full, {vulcan::listeners::RollingWindow(2)});
+        config.add_listener(partial, vulcan::listeners::RollingWindow(5));
+        config.add_listener(full, vulcan::listeners::RollingWindow(2));
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (double v : {2.0, 3.0}) {
@@ -202,7 +203,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto flag = registry.declare<bool>("flag", "Test flag", false);
-        config.add_listeners(flag, {vulcan::listeners::RollingWindow(3)});
+        config.add_listener(flag, vulcan::listeners::RollingWindow(3));
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         TEST_ASSERT(features.get_latest(flag) == false, "Flag starts at its initial value");
@@ -219,7 +220,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto x = registry.declare<float>("x", "Test float", 0.1f);
-        config.add_listeners(x, {vulcan::listeners::RollingWindow(3)});
+        config.add_listener(x, vulcan::listeners::RollingWindow(3));
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         features.update(x, 2.5f);
@@ -232,7 +233,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto n = registry.declare<int32_t>("n", "Test int32", 7);
-        config.add_listeners(n, {vulcan::listeners::RollingWindow(3)});
+        config.add_listener(n, vulcan::listeners::RollingWindow(3));
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (int32_t v : {2, 7, 7})
@@ -249,9 +250,9 @@ int main() {
         auto flag = registry.declare<bool, obj>("flag", "Per-object flag", false);
         auto x = registry.declare<float, obj>("x", "Per-object float", 0.0f);
         auto n = registry.declare<int32_t, obj>("n", "Per-object int32", 0);
-        config.add_listeners(flag, {vulcan::listeners::RollingWindow(2)});
-        config.add_listeners(x, {vulcan::listeners::RollingWindow(2)});
-        config.add_listeners(n, {vulcan::listeners::RollingWindow(2)});
+        config.add_listener(flag, vulcan::listeners::RollingWindow(2));
+        config.add_listener(x, vulcan::listeners::RollingWindow(2));
+        config.add_listener(n, vulcan::listeners::RollingWindow(2));
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         features.add(obj{1}, {{flag, true}, {x, 1.5f}, {n, 10}});

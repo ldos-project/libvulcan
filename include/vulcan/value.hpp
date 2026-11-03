@@ -84,7 +84,7 @@ public:
         }
 
         ss << "--- Listeners ---\n";
-        ss << "By default, no listeners are attached to any feature, meaning no data is collected for it. To use a feature in your value function you must attach one or more listeners to it. Listeners configure how data is stored and processed, and expose query functions (e.g. rolling averages, min/max, percentiles) that you call inside your value function. Attach with: store_cfg.add_listeners(handle, {listener1, listener2, ...});\n\n";
+        ss << "By default, no listeners are attached to any feature, meaning no data is collected for it. To use a feature in your value function you must attach one or more listeners to it. Listeners configure how data is stored and processed, and expose query functions (e.g. rolling averages, min/max, percentiles) that you call inside your value function. Attach with: store_cfg.add_listener(handle, listener1).add_listener(handle, listener2);\n\n";
         ss << "Listeners that can be attached to global features:\n";
         for (const auto& doc : feature_registry::get_available_listeners(feature_desc::scope_type::global)) {
             ss << "  " << doc << "\n";
@@ -100,7 +100,7 @@ public:
 
         ss << "--- Expected Output ---\n";
         ss << "1. Listener configuration — attach listeners to each feature you want to use.\n";
-        ss << "     store_cfg.add_listeners(handle, {vulcan::listeners::RollingWindow(5), vulcan::listeners::MinMax()});\n\n";
+        ss << "     store_cfg.add_listener(handle, vulcan::listeners::RollingWindow(5)).add_listener(handle, vulcan::listeners::MinMax());\n\n";
         ss << "2. Value function — this IS your heuristic. Called each decision step, returns the computed scalar.\n";
         ss << "     auto fn = [&](const vulcan::feature_store& fs) -> double {\n";
         ss << "         // e.g. fs.get_latest(handle), fs.get_max(handle), fs.get_temporal_percentile(handle, 0.95)\n";

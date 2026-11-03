@@ -10,8 +10,9 @@ int main() {
         auto hits = registry.declare<int64_t, page>("hits", "Per-page hits", 0);
         auto size = registry.declare<double, page>("size", "Page size in bytes", -1.0);
         vulcan::store_config config;
-        config.add_listeners(hits, {vulcan::listeners::RollingWindow(1)});
-        config.add_listeners(size, {vulcan::listeners::RollingWindow(1), vulcan::listeners::Average()});
+        config.add_listener(hits, vulcan::listeners::RollingWindow(1));
+        config.add_listener(size, vulcan::listeners::RollingWindow(1))
+            .add_listener(size, vulcan::listeners::Average());
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
         fs.add(page{1});
@@ -30,7 +31,8 @@ int main() {
         vulcan::feature_registry registry;
         auto load = registry.declare<double>("load", "System load", 0.5);
         vulcan::store_config config;
-        config.add_listeners(load, {vulcan::listeners::RollingWindow(2), vulcan::listeners::MinMax()});
+        config.add_listener(load, vulcan::listeners::RollingWindow(2))
+            .add_listener(load, vulcan::listeners::MinMax());
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
         TEST_ASSERT(fs.get_latest(load) == 0.5 && fs.get_max(load) == 0.5, "Read before any update");

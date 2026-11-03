@@ -6,7 +6,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto var1 = registry.declare<double>("var1", "Test feature", 0.0);
-        config.add_listeners(var1, {vulcan::listeners::MinMax()});
+        config.add_listener(var1, vulcan::listeners::MinMax());
         
         auto features = vulcan::instantiate_feature_store(registry, config);
 
@@ -24,7 +24,7 @@ int main() {
         const int64_t a = 9007199254740993LL;   // 2^53 + 1, not representable as a double
         const int64_t b = 9007199254740995LL;   // 2^53 + 3
         auto n = registry.declare<int64_t>("n", "Large integer", a);
-        config.add_listeners(n, {vulcan::listeners::MinMax()});
+        config.add_listener(n, vulcan::listeners::MinMax());
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         features.update(n, a);
@@ -38,7 +38,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto flag = registry.declare<bool>("flag", "Test flag", true);
-        config.add_listeners(flag, {vulcan::listeners::MinMax()});
+        config.add_listener(flag, vulcan::listeners::MinMax());
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         features.update(flag, true);
@@ -52,7 +52,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto x = registry.declare<float>("x", "Test float", 1.0f);
-        config.add_listeners(x, {vulcan::listeners::MinMax()});
+        config.add_listener(x, vulcan::listeners::MinMax());
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (float v : {4.0f, 2.0f, 3.0f})
@@ -65,7 +65,7 @@ int main() {
         vulcan::feature_registry registry;
         vulcan::store_config config;
         auto n = registry.declare<int32_t>("n", "Test int32", -5);
-        config.add_listeners(n, {vulcan::listeners::MinMax()});
+        config.add_listener(n, vulcan::listeners::MinMax());
         auto features = vulcan::instantiate_feature_store(registry, config);
 
         for (int32_t v : {10, 3, 2147483647})

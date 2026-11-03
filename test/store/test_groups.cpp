@@ -78,8 +78,9 @@ int main() {
         registry.declare_group<page>();
         auto hits = registry.declare<double, page>("hits", "Per-page hits", 0.0);
         vulcan::store_config config;
-        config.add_listeners(hits, {vulcan::listeners::RollingWindow(2), vulcan::listeners::Average(),
-                                    vulcan::listeners::PopulationPercentile()});
+        config.add_listener(hits, vulcan::listeners::RollingWindow(2))
+            .add_listener(hits, vulcan::listeners::Average())
+            .add_listener(hits, vulcan::listeners::PopulationPercentile());
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
         for (int64_t id : {1, 2, 3}) fs.add(page{id});
@@ -105,9 +106,9 @@ int main() {
         auto region_load = registry.declare<double, region>("region_load", "Per-region load", 0.0);
         auto load = registry.declare<double>("load", "System load", 0.0);
         vulcan::store_config config;
-        config.add_listeners(page_hits, {vulcan::listeners::RollingWindow(1)});
-        config.add_listeners(region_load, {vulcan::listeners::RollingWindow(1)});
-        config.add_listeners(load, {vulcan::listeners::RollingWindow(1)});
+        config.add_listener(page_hits, vulcan::listeners::RollingWindow(1));
+        config.add_listener(region_load, vulcan::listeners::RollingWindow(1));
+        config.add_listener(load, vulcan::listeners::RollingWindow(1));
         auto fs = vulcan::instantiate_feature_store(registry, config);
 
         fs.add(page{1});
@@ -129,7 +130,7 @@ int main() {
         auto hits = registry.declare<double, page>("hits", "Per-page hits", 0.0);
         auto unwatched = registry.declare<double, page>("unwatched", "A feature with no listeners", 0.0);
         vulcan::store_config config;
-        config.add_listeners(hits, {vulcan::listeners::RollingWindow(1)});
+        config.add_listener(hits, vulcan::listeners::RollingWindow(1));
         auto fs = vulcan::instantiate_feature_store(registry, config);
         fs.add(page{1});
 
@@ -150,7 +151,7 @@ int main() {
         registry.declare_group<page>();
         auto hits = registry.declare<double, page>("hits", "Per-page hits", 0.0);
         vulcan::store_config store_cfg;
-        store_cfg.add_listeners(hits, {vulcan::listeners::RollingWindow(1)});
+        store_cfg.add_listener(hits, vulcan::listeners::RollingWindow(1));
         vulcan::rank_config<page> config;
         config.set_scoring_fn([&](const vulcan::feature_store& fs, page p) { return fs.get_latest(hits, p); });
         config.set_comparator(vulcan::max);
