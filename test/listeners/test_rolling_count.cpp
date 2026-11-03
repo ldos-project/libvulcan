@@ -4,6 +4,18 @@
 
 VULCAN_GROUP(obj, "Test objects");
 
+// Whether get_count and contains compile for a handle of type H (global) or H plus a member (keyed)
+template <typename H>
+constexpr bool can_count = requires(const vulcan::feature_store& fs, H h) {
+    fs.get_count(h, {});
+    fs.contains(h, {});
+};
+template <typename H>
+constexpr bool can_count_member = requires(const vulcan::feature_store& fs, H h) {
+    fs.get_count(h, obj{1}, {});
+    fs.contains(h, obj{1}, {});
+};
+
 int main() {
     vulcan_test::run_test("RollingCount - Global", []() {
         vulcan::feature_registry registry;
@@ -109,6 +121,13 @@ int main() {
     vulcan_test::run_test("RollingCount - float and double features do not compile", []() {
         static_assert(!vulcan_test::can_attach<vulcan::feature_handle<float>, vulcan::listeners::RollingCount>);
         static_assert(!vulcan_test::can_attach<vulcan::feature_handle<double>, vulcan::listeners::RollingCount>);
+    });
+
+
+    vulcan_test::run_test("RollingCount - get_count and contains do not compile on float and double features", []() {
+        static_assert(can_count<vulcan::feature_handle<int64_t>> && can_count_member<vulcan::feature_handle<bool, obj>>);
+        static_assert(!can_count<vulcan::feature_handle<float>> && !can_count<vulcan::feature_handle<double>>);
+        static_assert(!can_count_member<vulcan::feature_handle<double, obj>>);
     });
 
     return 0;

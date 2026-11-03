@@ -5,6 +5,10 @@
 
 VULCAN_GROUP(obj, "Test objects");
 
+// Whether get_pop_percentile compiles for a handle of type H
+template <typename H>
+constexpr bool can_pop_percentile = requires(const vulcan::feature_store& fs, H h) { fs.get_pop_percentile(h, 0.5); };
+
 // Simple approx check
 bool approx(double a, double b, double eps = 0.001) {
     return std::abs(a - b) < eps;
@@ -125,6 +129,13 @@ int main() {
     vulcan_test::run_test("PopulationPercentile - global features do not compile", []() {
         static_assert(!vulcan_test::can_attach<vulcan::feature_handle<double>, vulcan::listeners::PopulationPercentile>);
         static_assert(vulcan_test::can_attach<vulcan::feature_handle<double, obj>, vulcan::listeners::PopulationPercentile>);
+    });
+
+
+    vulcan_test::run_test("PopulationPercentile - get_pop_percentile does not compile on bool or global features", []() {
+        static_assert(can_pop_percentile<vulcan::feature_handle<double, obj>>);
+        static_assert(!can_pop_percentile<vulcan::feature_handle<bool, obj>>);
+        static_assert(!can_pop_percentile<vulcan::feature_handle<double>>);
     });
 
     return 0;

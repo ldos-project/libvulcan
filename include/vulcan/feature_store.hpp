@@ -103,7 +103,8 @@ public:
 
     // Each operation has a global form, taking a feature_handle<T> (keyed by no_group) and no key, and a keyed
     // form, taking a feature_handle<T, G> and a member of G. A value argument is type_identity_t<T> so that T
-    // comes from the handle alone and a literal like 5 converts to the feature's type.
+    // comes from the handle alone and a literal like 5 converts to the feature's type. Each getter also requires
+    // that the listener it reads accepts T, so a call whose listener could never be attached does not compile.
 
     // Update methods
     template <typename T>
@@ -113,96 +114,96 @@ public:
     void update(feature_handle<T, G> h, G member, std::type_identity_t<T> val) { push(h.id, member_key(h.id, member), val); }
 
     // Temporal percentile: over a feature's recent values (RollingPercentile)
-    template <typename T>
+    template <typename T> requires listener_accepts<listeners::RollingPercentile, T>
     double get_temporal_percentile(feature_handle<T> h, double p) const {
         return listener<RollingPercentileRuntime<T>>(h.id)->get_percentile(global_key, p);
     }
 
-    template <typename T, typename G> requires keyed<G>
+    template <typename T, typename G> requires keyed<G> && listener_accepts<listeners::RollingPercentile, T>
     double get_temporal_percentile(feature_handle<T, G> h, G member, double p) const {
         return listener<RollingPercentileRuntime<T>>(h.id)->get_percentile(member_key(h.id, member), p);
     }
 
     // Population percentile: across the latest value of every member of the feature's group (PopulationPercentile)
-    template <typename T, typename G> requires keyed<G>
+    template <typename T, typename G> requires keyed<G> && listener_accepts<listeners::PopulationPercentile, T>
     double get_pop_percentile(feature_handle<T, G> h, double p) const {
         return listener<PopulationPercentileRuntime<T>>(h.id)->get_percentile(p);
     }
 
     // MinMax
-    template <typename T>
+    template <typename T> requires listener_accepts<listeners::MinMax, T>
     T get_max(feature_handle<T> h) const { return listener<MinMaxRuntime<T>>(h.id)->get_max(global_key); }
 
-    template <typename T, typename G> requires keyed<G>
+    template <typename T, typename G> requires keyed<G> && listener_accepts<listeners::MinMax, T>
     T get_max(feature_handle<T, G> h, G member) const { return listener<MinMaxRuntime<T>>(h.id)->get_max(member_key(h.id, member)); }
 
-    template <typename T>
+    template <typename T> requires listener_accepts<listeners::MinMax, T>
     T get_min(feature_handle<T> h) const { return listener<MinMaxRuntime<T>>(h.id)->get_min(global_key); }
 
-    template <typename T, typename G> requires keyed<G>
+    template <typename T, typename G> requires keyed<G> && listener_accepts<listeners::MinMax, T>
     T get_min(feature_handle<T, G> h, G member) const { return listener<MinMaxRuntime<T>>(h.id)->get_min(member_key(h.id, member)); }
 
     // Average: the mean of every value the feature has received
-    template <typename T>
+    template <typename T> requires listener_accepts<listeners::Average, T>
     double get_avg(feature_handle<T> h) const { return listener<AverageRuntime<T>>(h.id)->get_avg(global_key); }
 
-    template <typename T, typename G> requires keyed<G>
+    template <typename T, typename G> requires keyed<G> && listener_accepts<listeners::Average, T>
     double get_avg(feature_handle<T, G> h, G member) const { return listener<AverageRuntime<T>>(h.id)->get_avg(member_key(h.id, member)); }
 
     // Window average: the mean of the values a RollingWindow currently holds
-    template <typename T>
+    template <typename T> requires listener_accepts<listeners::RollingWindow, T>
     double get_window_avg(feature_handle<T> h) const { return listener<RollingWindowRuntime<T>>(h.id)->get_avg(global_key); }
 
-    template <typename T, typename G> requires keyed<G>
+    template <typename T, typename G> requires keyed<G> && listener_accepts<listeners::RollingWindow, T>
     double get_window_avg(feature_handle<T, G> h, G member) const {
         return listener<RollingWindowRuntime<T>>(h.id)->get_avg(member_key(h.id, member));
     }
 
     // EWMA
-    template <typename T>
+    template <typename T> requires listener_accepts<listeners::EWMA, T>
     double get_ewma(feature_handle<T> h, double alpha) const { return listener<EWMARuntime<T>>(h.id)->get(global_key, alpha); }
 
-    template <typename T, typename G> requires keyed<G>
+    template <typename T, typename G> requires keyed<G> && listener_accepts<listeners::EWMA, T>
     double get_ewma(feature_handle<T, G> h, G member, double alpha) const {
         return listener<EWMARuntime<T>>(h.id)->get(member_key(h.id, member), alpha);
     }
 
     // Rolling Window
-    template <typename T>
+    template <typename T> requires listener_accepts<listeners::RollingWindow, T>
     T get_latest(feature_handle<T> h) const { return listener<RollingWindowRuntime<T>>(h.id)->get_latest(global_key); }
 
-    template <typename T, typename G> requires keyed<G>
+    template <typename T, typename G> requires keyed<G> && listener_accepts<listeners::RollingWindow, T>
     T get_latest(feature_handle<T, G> h, G member) const {
         return listener<RollingWindowRuntime<T>>(h.id)->get_latest(member_key(h.id, member));
     }
 
-    template <typename T>
+    template <typename T> requires listener_accepts<listeners::RollingWindow, T>
     T get_kth_recent(feature_handle<T> h, std::size_t k) const {
         return listener<RollingWindowRuntime<T>>(h.id)->get_kth(global_key, k);
     }
 
-    template <typename T, typename G> requires keyed<G>
+    template <typename T, typename G> requires keyed<G> && listener_accepts<listeners::RollingWindow, T>
     T get_kth_recent(feature_handle<T, G> h, G member, std::size_t k) const {
         return listener<RollingWindowRuntime<T>>(h.id)->get_kth(member_key(h.id, member), k);
     }
 
     // Rolling Count (integer and bool features)
-    template <typename T>
+    template <typename T> requires listener_accepts<listeners::RollingCount, T>
     int get_count(feature_handle<T> h, std::type_identity_t<T> val) const {
         return listener<RollingCountRuntime<T>>(h.id)->get_count(global_key, val);
     }
 
-    template <typename T, typename G> requires keyed<G>
+    template <typename T, typename G> requires keyed<G> && listener_accepts<listeners::RollingCount, T>
     int get_count(feature_handle<T, G> h, G member, std::type_identity_t<T> val) const {
         return listener<RollingCountRuntime<T>>(h.id)->get_count(member_key(h.id, member), val);
     }
 
-    template <typename T>
+    template <typename T> requires listener_accepts<listeners::RollingCount, T>
     bool contains(feature_handle<T> h, std::type_identity_t<T> val) const {
         return listener<RollingCountRuntime<T>>(h.id)->contains(global_key, val);
     }
 
-    template <typename T, typename G> requires keyed<G>
+    template <typename T, typename G> requires keyed<G> && listener_accepts<listeners::RollingCount, T>
     bool contains(feature_handle<T, G> h, G member, std::type_identity_t<T> val) const {
         return listener<RollingCountRuntime<T>>(h.id)->contains(member_key(h.id, member), val);
     }

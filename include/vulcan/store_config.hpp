@@ -25,10 +25,14 @@ template <> struct runtime_of<listeners::RollingCount> { template <typename T> u
 template <> struct runtime_of<listeners::EWMA> { template <typename T> using type = EWMARuntime<T>; };
 template <> struct runtime_of<listeners::PopulationPercentile> { template <typename T> using type = PopulationPercentileRuntime<T>; };
 
+// Whether listener config C accepts value type T, e.g. RollingCount accepts integer and bool features
+template <typename C, typename T>
+concept listener_accepts = runtime_of<C>::template type<T>::accepts;
+
 // Whether listener config C can be attached to a feature with value type T keyed by group G: the listener
 // must accept T, and a per-object-only listener needs an object group
 template <typename C, typename T, typename G>
-concept attachable = runtime_of<C>::template type<T>::accepts && (!C::per_object_only || keyed<G>);
+concept attachable = listener_accepts<C, T> && (!C::per_object_only || keyed<G>);
 
 class store_config {
 public:

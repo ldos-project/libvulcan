@@ -7,6 +7,16 @@ bool approx(double a, double b, double eps = 0.001) {
     return std::abs(a - b) < eps;
 }
 
+VULCAN_GROUP(obj, "Test objects");
+
+// Whether get_temporal_percentile compiles for a handle of type H (global) or H plus a member (keyed)
+template <typename H>
+constexpr bool can_percentile = requires(const vulcan::feature_store& fs, H h) { fs.get_temporal_percentile(h, 0.5); };
+template <typename H>
+constexpr bool can_percentile_member = requires(const vulcan::feature_store& fs, H h) {
+    fs.get_temporal_percentile(h, obj{1}, 0.5);
+};
+
 int main() {
     vulcan_test::run_test("RollingPercentile - global history", []() {
         vulcan::feature_registry registry;
@@ -70,6 +80,12 @@ int main() {
 
     vulcan_test::run_test("RollingPercentile - bool features do not compile", []() {
         static_assert(!vulcan_test::can_attach<vulcan::feature_handle<bool>, vulcan::listeners::RollingPercentile>);
+    });
+
+
+    vulcan_test::run_test("RollingPercentile - get_temporal_percentile does not compile on bool features", []() {
+        static_assert(can_percentile<vulcan::feature_handle<double>> && can_percentile_member<vulcan::feature_handle<int32_t, obj>>);
+        static_assert(!can_percentile<vulcan::feature_handle<bool>> && !can_percentile_member<vulcan::feature_handle<bool, obj>>);
     });
 
     return 0;
