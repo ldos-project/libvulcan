@@ -15,22 +15,14 @@ bool approx(double a, double b, double eps = 0.001) {
 }
 
 int main() {
-    vulcan::feature_registry registry;
-    vulcan::store_config config;
-    
-    // 1. Object Feature with Population Distribution
-    registry.declare_group<obj>();
-    auto obj_feat = registry.declare<double, obj>("o_temp", "Object Temp", 0.0);
-    config.add_listener(obj_feat, vulcan::listeners::PopulationPercentile());
+    vulcan_test::run_test("Object Population Distribution", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        registry.declare_group<obj>();
+        auto obj_feat = registry.declare<double, obj>("o_temp", "Object Temp", 0.0);
+        config.add_listener(obj_feat, vulcan::listeners::PopulationPercentile());
+        auto store = vulcan::instantiate_feature_store(registry, config);
 
-    // 2. Object Feature with Both Percentiles
-    auto obj_combined_feat = registry.declare<double, obj>("o_comb", "Object Combined", 0.0);
-    config.add_listener(obj_combined_feat, vulcan::listeners::RollingPercentile(100))
-        .add_listener(obj_combined_feat, vulcan::listeners::PopulationPercentile());
-
-    auto store = vulcan::instantiate_feature_store(registry, config);
-
-    vulcan_test::run_test("Object Population Distribution", [&]() {
         // Initial state:
         // Obj 1: 10
         // Obj 2: 20
@@ -59,8 +51,13 @@ int main() {
         TEST_ASSERT(approx(dist_p50, 20.0), "Population P50 (4 items) should be 20, got " + std::to_string(dist_p50));
     });
 
-    vulcan_test::run_test("Combined Object Percentiles (Rolling + Population)", [&]() {
-        // A store of its own, so the population holds only objects 1 and 2
+    vulcan_test::run_test("Combined Object Percentiles (Rolling + Population)", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        registry.declare_group<obj>();
+        auto obj_combined_feat = registry.declare<double, obj>("o_comb", "Object Combined", 0.0);
+        config.add_listener(obj_combined_feat, vulcan::listeners::RollingPercentile(100))
+            .add_listener(obj_combined_feat, vulcan::listeners::PopulationPercentile());
         auto store = vulcan::instantiate_feature_store(registry, config);
         store.add(obj{1}, {{obj_combined_feat, 10.0}});
         store.add(obj{2}, {{obj_combined_feat, 20.0}});

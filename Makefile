@@ -21,8 +21,8 @@ benchmark_rank: benchmark/rank.cpp $(LIB_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ benchmark/rank.cpp $(LIB_OBJS)
 
 # Tests
-test_safety: test/test_safety.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
-	$(CXX) $(CXXFLAGS) -o test/test_safety.o test/test_safety.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+test_store: test/store/test_store.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
+	$(CXX) $(CXXFLAGS) -I./test -o test/store/test_store.o test/store/test_store.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
 
 test_min_max: test/listeners/test_min_max.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
@@ -61,12 +61,12 @@ test_groups: test/store/test_groups.cpp src/vulcan.o src/feature_registry.o src/
 test_configs: test/listeners/test_configs.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 	$(CXX) $(CXXFLAGS) -I./test -o test/listeners/test_configs.o test/listeners/test_configs.cpp src/vulcan.o src/feature_registry.o src/feature_store.o
 
-test: test_rolling_count test_min_max test_population_percentile test_rolling_window test_safety test_ewma test_configs test_groups test_initial_values test_average test_rolling_percentile test_registry
+test: test_rolling_count test_min_max test_population_percentile test_rolling_window test_store test_ewma test_configs test_groups test_initial_values test_average test_rolling_percentile test_registry
 	./test/listeners/test_rolling_count.o
 	./test/listeners/test_min_max.o
 	./test/listeners/test_population_percentile.o
 	./test/listeners/test_rolling_window.o
-	./test/test_safety.o
+	./test/store/test_store.o
 	./test/listeners/test_ewma.o
 	./test/listeners/test_configs.o
 	./test/store/test_groups.o

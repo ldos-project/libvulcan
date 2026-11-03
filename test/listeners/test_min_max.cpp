@@ -74,5 +74,22 @@ int main() {
         TEST_ASSERT(features.get_min(n) == -5, "Min is -5");
     });
 
+
+    vulcan_test::run_test("MinMax - int64 boundary values", []() {
+        vulcan::feature_registry registry;
+        vulcan::store_config config;
+        auto n = registry.declare<int64_t>("n", "Test int64", 0);
+        config.add_listener(n, vulcan::listeners::MinMax());
+        auto features = vulcan::instantiate_feature_store(registry, config);
+
+        int64_t large_pos = 9000000000000000LL;
+        features.update(n, large_pos);
+        TEST_ASSERT(features.get_max(n) == large_pos, "Large positive int64_t value should be stored correctly");
+
+        int64_t large_neg = -9000000000000000LL;
+        features.update(n, large_neg);
+        TEST_ASSERT(features.get_min(n) == large_neg, "Large negative int64_t value should be stored correctly");
+    });
+
     return 0;
 }
