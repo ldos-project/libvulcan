@@ -1,4 +1,4 @@
-.PHONY: test
+.PHONY: all examples test clean
 
 CXX = g++
 CXXFLAGS = -std=c++20 -I./include
@@ -10,7 +10,9 @@ EXAMPLES = build/examples/ssd \
            build/examples/cwnd build/examples/cbl \
            build/examples/evict_batch build/examples/region_weights
 
-all: $(EXAMPLES) benchmark_rank
+all: examples benchmark_rank
+
+examples: $(EXAMPLES)
 
 build/examples/%: examples/%.cpp $(LIB_OBJS)
 	mkdir -p build/examples
