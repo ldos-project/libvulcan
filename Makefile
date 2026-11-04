@@ -6,7 +6,7 @@ CXXFLAGS = -std=c++20 -I./include
 LIB_SRCS = src/vulcan.cpp src/feature_registry.cpp src/feature_store.cpp
 LIB_OBJS = $(LIB_SRCS:.cpp=.o)
 
-EXAMPLES = build/examples/rank_example build/examples/value_example build/examples/value_rank_example
+EXAMPLES = build/examples/ssd build/examples/cwnd
 
 all: $(EXAMPLES) benchmark_rank
 
