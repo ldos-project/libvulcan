@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
+#include <unordered_set>
 #include <variant>
 #include "vulcan.h"
 

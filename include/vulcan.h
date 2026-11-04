@@ -5,8 +5,6 @@
 #include "vulcan/listeners.hpp"
 #include "vulcan/store_config.hpp"
 #include "vulcan/feature_store.hpp"
-#include "vulcan/rank.hpp"
-#include "vulcan/value.hpp"
 #include <functional>
 #include <memory>
 

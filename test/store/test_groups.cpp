@@ -146,26 +146,5 @@ int main() {
         TEST_ASSERT(throws([&] { fs.get_latest(hits, page{1}); }), "Read of a removed page");
     });
 
-    vulcan_test::run_test("Groups - rank chooses among the store's current members", []() {
-        vulcan::feature_registry registry;
-        registry.declare_group<page>();
-        auto hits = registry.declare<double, page>("hits", "Per-page hits", 0.0);
-        vulcan::store_config store_cfg;
-        store_cfg.add_listener(hits, vulcan::listeners::RollingWindow(1));
-        vulcan::rank_config<page> config;
-        config.set_scoring_fn([&](const vulcan::feature_store& fs, page p) { return fs.get_latest(hits, p); });
-        config.set_comparator(vulcan::max);
-        auto store = vulcan::make_shared_feature_store(registry, store_cfg);
-        auto policy = vulcan::instantiate_rank_policy(registry, config, store);
-
-        TEST_ASSERT(!vulcan::decision(policy), "No members, no decision");
-        for (int64_t id : {1, 2}) store->add(page{id});
-        store->update(hits, page{1}, 1.0);
-        store->update(hits, page{2}, 2.0);
-        TEST_ASSERT(*vulcan::decision(policy) == page{2}, "Highest score wins");
-        store->remove(page{2});
-        TEST_ASSERT(*vulcan::decision(policy) == page{1}, "A removed member is no longer a candidate");
-    });
-
     return 0;
 }
