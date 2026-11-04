@@ -6,16 +6,13 @@ CXXFLAGS = -std=c++20 -I./include
 LIB_SRCS = src/vulcan.cpp src/feature_registry.cpp src/feature_store.cpp
 LIB_OBJS = $(LIB_SRCS:.cpp=.o)
 
-all: value_example rank_example value_rank_example benchmark_rank
+EXAMPLES = build/examples/rank_example build/examples/value_example build/examples/value_rank_example
 
-value_example: value_example.cpp $(LIB_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ value_example.cpp $(LIB_OBJS)
+all: $(EXAMPLES) benchmark_rank
 
-rank_example: rank_example.cpp $(LIB_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ rank_example.cpp $(LIB_OBJS)
-
-value_rank_example: value_rank_example.cpp $(LIB_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ value_rank_example.cpp $(LIB_OBJS)
+build/examples/%: examples/%.cpp $(LIB_OBJS)
+	mkdir -p build/examples
+	$(CXX) $(CXXFLAGS) -o $@ $< $(LIB_OBJS)
 
 benchmark_rank: benchmark/rank.cpp $(LIB_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ benchmark/rank.cpp $(LIB_OBJS)
@@ -80,4 +77,4 @@ src/%.o: src/%.cpp
 
 clean:
 	find . -name "*.o" -delete
-	rm -rfv value_example rank_example value_rank_example benchmark_rank
+	rm -rfv benchmark_rank $(EXAMPLES)

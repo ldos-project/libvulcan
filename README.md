@@ -2,6 +2,8 @@
 
 LibVulcan is a feature registry and decision SDK designed to bridge human-defined scaffolding with LLM-synthesized policies.
 
+Complete example programs are in `examples/`; `make all` builds them into `build/examples/`.
+
 ## Interfaces
 
 ### 1. Human <-> Vulcan (Scaffolding)
