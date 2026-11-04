@@ -40,8 +40,11 @@ public:
         return {f.id, f.name, const_cast<feature_registry*>(this)};
     }
 
-    // Generate prompt context for LLM
-    std::string generate_policy_prompt() const;
+    // Describes, for an LLM prompt, what a policy can read: the object groups and how to get their members,
+    // every feature with its type and initial value, and the listeners that can be attached with the getters
+    // each provides. The policy itself is not in the registry; the developer's prompt states what to write.
+    std::string describe() const;
+
     static std::vector<std::string> get_available_listeners(feature_desc::scope_type scope);
 
     const std::vector<feature_desc>& get_features() const { return features; }

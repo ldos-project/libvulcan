@@ -53,50 +53,7 @@ public:
         ss << "Vulcan is a framework for automatically discovering resource-management heuristics using LLM-based code generation. It separates policy (what to do) from mechanism (how to do it), so you only write the decision logic.\n\n";
         ss << "A VALUE policy computes a single scalar output from the current system state (e.g. the next congestion window size, a target queue depth, a timeout duration). You implement your heuristic as a value function that reads from the feature store and returns a double.\n\n";
 
-        const auto& features = registry_.get_features();
-
-        std::vector<const feature_desc*> global_features, object_features;
-        for (const auto& f : features) {
-            if (f.scope == feature_desc::scope_type::global)
-                global_features.push_back(&f);
-            else
-                object_features.push_back(&f);
-        }
-
-        if (!global_features.empty()) {
-            ss << "--- Global Features ---\n";
-            for (const auto* f : global_features) {
-                ss << "  - " << f->name
-                   << " (" << (f->type == feature_type::f64 ? "f64" : "i64") << "): "
-                   << f->description << "\n";
-            }
-            ss << "\n";
-        }
-
-        if (!object_features.empty()) {
-            ss << "--- Per-Object Features ---\n";
-            for (const auto* f : object_features) {
-                ss << "  - " << f->name
-                   << " (" << (f->type == feature_type::f64 ? "f64" : "i64") << "): "
-                   << f->description << "\n";
-            }
-            ss << "\n";
-        }
-
-        ss << "--- Listeners ---\n";
-        ss << "By default, no listeners are attached to any feature, meaning no data is collected for it. To use a feature in your value function you must attach one or more listeners to it. Listeners configure how data is stored and processed, and expose query functions (e.g. rolling averages, min/max, percentiles) that you call inside your value function. Attach with: store_cfg.add_listener(handle, listener1).add_listener(handle, listener2);\n\n";
-        ss << "Listeners that can be attached to global features:\n";
-        for (const auto& doc : feature_registry::get_available_listeners(feature_desc::scope_type::global)) {
-            ss << "  " << doc << "\n";
-        }
-        ss << "\n";
-        if (!object_features.empty()) {
-            ss << "Listeners that can be attached to per-object features:\n";
-            for (const auto& doc : feature_registry::get_available_listeners(feature_desc::scope_type::object)) {
-                ss << "  " << doc << "\n";
-            }
-            ss << "\n";
-        }
+        ss << registry_.describe();
 
         ss << "--- Expected Output ---\n";
         ss << "1. Listener configuration — attach listeners to each feature you want to use.\n";

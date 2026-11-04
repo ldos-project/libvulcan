@@ -115,51 +115,7 @@ public:
             ss << info << "\n\n";
         }
 
-        ss << "--- Features ---\n";
-        ss << "You can create this scoring function using the features we have listed below. Some features (i.e. global features) encode information about the system as a whole; other features (i.e. per-object) give you information about every object. You are allowed to use any subset of these features (or all of them) in your scoring function. Be creative!\n\n";
-
-        const auto& features = registry_.get_features();
-
-        std::vector<const feature_desc*> global_features, object_features;
-        for (const auto& f : features) {
-            if (f.scope == feature_desc::scope_type::global)
-                global_features.push_back(&f);
-            else
-                object_features.push_back(&f);
-        }
-
-        if (!global_features.empty()) {
-            ss << "Global Features:\n";
-            for (const auto* f : global_features) {
-                ss << "  - " << f->name
-                   << " (" << (f->type == feature_type::f64 ? "f64" : "i64") << "): "
-                   << f->description << "\n";
-            }
-            ss << "\n";
-        }
-
-        if (!object_features.empty()) {
-            ss << "Per-Object Features:\n";
-            for (const auto* f : object_features) {
-                ss << "  - " << f->name
-                   << " (" << (f->type == feature_type::f64 ? "f64" : "i64") << "): "
-                   << f->description << "\n";
-            }
-            ss << "\n";
-        }
-
-        ss << "--- Listeners ---\n";
-        ss << "To use a feature in your scoring function, you must attach one or more **listeners** to it. Listeners collect and process data for a feature, exposing **query functions** (e.g. rolling averages, min/max, percentiles) that you call from inside your scoring function. By default, no listeners are attached to any feature, meaning no data is collected. Calling a query without attaching the corresponding listener causes a runtime error. Global features take global listeners; per-object features take object listeners. Attach with: store_cfg.add_listener(handle, listener1).add_listener(handle, listener2);\n\n";
-        ss << "Listeners that can be attached to global features:\n";
-        for (const auto& doc : feature_registry::get_available_listeners(feature_desc::scope_type::global)) {
-            ss << "  " << doc << "\n";
-        }
-        ss << "\n";
-        ss << "Listeners that can be attached to per-object features:\n";
-        for (const auto& doc : feature_registry::get_available_listeners(feature_desc::scope_type::object)) {
-            ss << "  " << doc << "\n";
-        }
-        ss << "\n";
+        ss << registry_.describe();
 
         ss << "--- Expected Output ---\n";
         ss << "1. Listener configuration — attach listeners to each feature you want to use.\n";

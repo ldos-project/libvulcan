@@ -12,7 +12,7 @@
 namespace vulcan::listeners {
 
 namespace detail {
-inline std::string args(bool per_object) { return per_object ? "handle, int64_t obj_id" : "handle"; }
+inline std::string args(bool per_object) { return per_object ? "handle, member" : "handle"; }
 }
 
 struct Average {

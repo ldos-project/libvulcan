@@ -1,4 +1,6 @@
 #include "vulcan/feature_registry.hpp"
+#include <sstream>
+#include <variant>
 #include <algorithm>
 
 namespace vulcan {
@@ -55,12 +57,63 @@ const feature_desc& feature_registry::lookup_checked(const std::string& name, fe
     return *f;
 }
 
-std::string feature_registry::generate_policy_prompt() const {
-    std::string prompt = "Available Features:\n";
-    for (const auto& desc : features) {
-        prompt += "- " + desc.name + ": " + desc.description + "\n";
+static std::string value_string(const feature_value& v) {
+    return std::visit([](auto x) -> std::string {
+        if constexpr (std::is_same_v<decltype(x), bool>) return x ? "true" : "false";
+        else { std::ostringstream out; out << x; return out.str(); }
+    }, v);
+}
+
+static void list_features(std::ostringstream& ss, const feature_registry& registry, int group) {
+    for (const auto& f : registry.get_features()) {
+        if (f.group != group) continue;
+        ss << "  - " << f.name << " (" << feature_type_name(f.type) << ", initial value " << value_string(f.initial)
+           << "): " << f.description << "\n";
     }
-    return prompt;
+}
+
+static std::string features_section(const feature_registry& registry) {
+    std::ostringstream ss;
+    const auto& groups = registry.get_groups();
+    if (!groups.empty()) {
+        ss << "--- Object Groups ---\n";
+        ss << "Each group is a C++ type whose values are its current members. Get members only from the store: "
+              "fs.all<G>() (every member), fs.sample<G>(k) (up to k distinct members at random), fs.count<G>() "
+              "(how many). Never construct a member yourself.\n";
+        for (const auto& g : groups) ss << "  - " << g.name << ": " << g.description << "\n";
+        ss << "\n";
+    }
+    ss << "--- Features ---\n";
+    ss << "Global features (read with fs.get_<statistic>(handle, ...)):\n";
+    list_features(ss, registry, no_group_index);
+    for (std::size_t i = 0; i < groups.size(); ++i) {
+        ss << "Features of each " << groups[i].name << " (read with fs.get_<statistic>(handle, member, ...)):\n";
+        list_features(ss, registry, static_cast<int>(i));
+    }
+    ss << "\n";
+    return ss.str();
+}
+
+static std::string listeners_section(const feature_registry& registry) {
+    std::ostringstream ss;
+    ss << "--- Listeners ---\n";
+    ss << "A feature records nothing until a listener is attached to it. Each listener keeps one kind of statistic "
+          "and provides the getters that read it. Attach with "
+          "listeners.add_listener(handle, listener1).add_listener(handle, listener2); attaching a listener to a "
+          "feature it does not support, or calling a getter whose listener the feature cannot have, does not "
+          "compile.\n\n";
+    ss << "Listeners for global features:\n";
+    for (const auto& doc : feature_registry::get_available_listeners(feature_desc::scope_type::global)) ss << "  " << doc << "\n";
+    if (!registry.get_groups().empty()) {
+        ss << "\nListeners for features of a group member:\n";
+        for (const auto& doc : feature_registry::get_available_listeners(feature_desc::scope_type::object)) ss << "  " << doc << "\n";
+    }
+    ss << "\n";
+    return ss.str();
+}
+
+std::string feature_registry::describe() const {
+    return features_section(*this) + listeners_section(*this);
 }
 
 std::vector<std::string> feature_registry::get_available_listeners(feature_desc::scope_type scope) {
