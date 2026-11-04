@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <vector>
 #include <random>
@@ -34,7 +35,6 @@ int main(int argc, char* argv[]) {
     auto f_4 = registry.declare<double, cached_obj>("f_4", "Feature 4", 0.0);
 
     vulcan::store_config store_cfg;
-    vulcan::rank_config<cached_obj> config;
 
     if (!disable_listeners) {
         store_cfg.add_listener(f_1, vulcan::listeners::RollingWindow(1));
@@ -52,12 +52,7 @@ int main(int argc, char* argv[]) {
         return val_4 + val_3;
     };
 
-    config.set_sorting_function(vulcan::rank::SampleSort);
-    config.set_scoring_fn(scoring_fn);
-    config.set_comparator(vulcan::min);
-
     auto store = vulcan::make_shared_feature_store(registry, store_cfg);
-    auto policy = std::make_unique<vulcan::rank_policy<cached_obj>>(vulcan::instantiate_rank_policy(registry, config, store));
 
     std::mt19937 rng(42);
     std::uniform_int_distribution<int> obj_dist(1, TOTAL_OBJECTS * 2);
@@ -74,7 +69,9 @@ int main(int argc, char* argv[]) {
         cached_obj o{obj_dist(rng)};
 
         if (num_objects >= TOTAL_OBJECTS) {
-            cached_obj victim = *vulcan::decision(*policy);
+            // Evict the lowest-scoring of 5 sampled residents
+            auto candidates = store->sample<cached_obj>(5);
+            cached_obj victim = *std::ranges::min_element(candidates, {}, [&](cached_obj c) { return scoring_fn(*store, c); });
             store->remove(victim);
             num_objects--;
         }

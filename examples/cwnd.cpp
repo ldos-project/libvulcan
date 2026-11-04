@@ -1,72 +1,82 @@
+// Congestion control: the next congestion window for a flow.
+//
+// Output type: double. Two kinds of flow get their own synthesized function and listeners, so each is
+// specialized to its kind; each flow has its own store.
+
 #include "vulcan.h"
-#include <cstdlib>
-#include <ctime>
-#include <iostream>
 #include <algorithm>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+#include <vector>
 
-int main() {
-    vulcan::feature_registry registry;
-    auto rtt       = registry.declare<double>("rtt", "RTT time in milliseconds", 0.0);
-    auto queue_len = registry.declare<int64_t>("queue_len", "Queue length in packets", 0);
-    auto prev_cwnd = registry.declare<double>("prev_cwnd", "Congestion window size returned by the previous decision", 0.0);
+// ---- Trusted compute base: features and the decisions' prototypes ----
+vulcan::feature_registry registry;
 
-    vulcan::value_config config1, config2;
+const vulcan::feature_handle<double> rtt =
+    registry.declare<double>("rtt", "RTT in milliseconds", 0.0);
+const vulcan::feature_handle<int64_t> queue_len =
+    registry.declare<int64_t>("queue_len", "Queue length in packets", 0);
 
-    config1.set_information(
-        "You are building a congestion control policy for a network flow. "
-        "Each time the policy is invoked, it should return the next congestion window (cwnd) size in packets. "
-        "You have access to RTT measurements, queue length, and the previous cwnd value to guide your decision."
-    );
+double cwnd_a(const vulcan::feature_store& fs);
+double cwnd_b(const vulcan::feature_store& fs);
 
-    // Store configs for each flow variant
-    vulcan::store_config store_cfg1, store_cfg2;
+// ---- The developer's prompt for one kind of flow: the task, what it can read, and the functions to write ----
+std::string prompt(const std::string& name) {
+    return "--- Task ---\nReturn the next congestion window, in packets, for a network flow.\n\n" +
+           registry.describe() +
+           "--- Write ---\n"
+           "1. void configure_" + name + "(vulcan::store_config& listeners): "
+           "attach the listeners your function reads.\n"
+           "2. double cwnd_" + name + "(const vulcan::feature_store& fs)\n"
+           "   Return the congestion window, at least 1.\n";
+}
 
-    // EVOLVE-BLOCK-START
-    store_cfg1.add_listener(rtt, vulcan::listeners::RollingWindow(5))
-        .add_listener(rtt, vulcan::listeners::MinMax());
-    store_cfg1.add_listener(queue_len, vulcan::listeners::RollingWindow(5))
+// ---- Synthesized by the LLM: one function per kind of flow ----
+// EVOLVE-BLOCK-START
+void configure_a(vulcan::store_config& listeners) {
+    listeners.add_listener(rtt, vulcan::listeners::RollingWindow(5)).add_listener(rtt, vulcan::listeners::MinMax());
+    listeners.add_listener(queue_len, vulcan::listeners::RollingWindow(5))
         .add_listener(queue_len, vulcan::listeners::MinMax());
-    auto flow1_cwnd_fn = [&](const vulcan::feature_store& fs) -> double {
-        double  rtt_max = fs.get_max(rtt);
-        int64_t q_min   = fs.get_min(queue_len);
-        if (rtt_max <= 0.0) return 1.0;
-        return std::max(1.0, 1000.0 / rtt_max - static_cast<double>(q_min));
-    };
+}
 
-    store_cfg2.add_listener(rtt, vulcan::listeners::RollingPercentile(100));
-    auto flow2_cwnd_fn = [&](const vulcan::feature_store& fs) -> double {
-      return fs.get_temporal_percentile(rtt, 0.95);
-    };
-    config1.set_value_fn(flow1_cwnd_fn);
-    config2.set_value_fn(flow2_cwnd_fn);
-    // EVOLVE-BLOCK-END
+double cwnd_a(const vulcan::feature_store& fs) {
+    double rtt_max = fs.get_max(rtt);
+    if (rtt_max <= 0.0) return 1.0;
+    return std::max(1.0, 1000.0 / rtt_max - static_cast<double>(fs.get_min(queue_len)));
+}
 
-    // Instantiate a policy for each flow.
-    std::deque<vulcan::value_policy> policies;
-    std::vector<std::shared_ptr<vulcan::feature_store>> stores;
+void configure_b(vulcan::store_config& listeners) {
+    listeners.add_listener(rtt, vulcan::listeners::RollingPercentile(100));
+}
 
-    for(int i=0; i<10; i++) {
-        if(i%2 == 0) {
-            auto store = vulcan::make_shared_feature_store(registry, store_cfg1);
-            policies.push_back(vulcan::instantiate_value_policy(registry, config1, store));
-            stores.push_back(store);
-        } else {
-            auto store = vulcan::make_shared_feature_store(registry, store_cfg2);
-            policies.push_back(vulcan::instantiate_value_policy(registry, config2, store));
-            stores.push_back(store);
-        }
+double cwnd_b(const vulcan::feature_store& fs) {
+    return fs.get_temporal_percentile(rtt, 0.95);
+}
+// EVOLVE-BLOCK-END
+
+// ---- Mechanism: two simulated flows, one of each kind ----
+int main(int argc, char** argv) {
+    if (argc > 1 && std::string(argv[1]) == "--prompt") {
+        std::cout << prompt("a") << "\n" << prompt("b");
+        return 0;
     }
+    vulcan::store_config listeners_a, listeners_b;
+    configure_a(listeners_a);
+    configure_b(listeners_b);
 
-    std::cout << "\n" << policies.front().get_prompt() << std::endl;
+    std::vector<vulcan::feature_store> stores;
+    stores.push_back(vulcan::instantiate_feature_store(registry, listeners_a));
+    stores.push_back(vulcan::instantiate_feature_store(registry, listeners_b));
 
-    std::srand(static_cast<unsigned>(std::time(nullptr)));
-    for(int t=0; t<10; t++) {
-        for(int j=0; j<2; j++) {
-            if(stores[j]->has_listeners(rtt)) stores[j]->update(rtt, 50.0 + (std::rand() % 100));
-            if(stores[j]->has_listeners(queue_len)) stores[j]->update(queue_len, static_cast<int64_t>(std::rand() % 20));
-            double cwnd = vulcan::decision(policies[j]);
-            if(stores[j]->has_listeners(prev_cwnd)) stores[j]->update(prev_cwnd, cwnd);
+    std::srand(42);
+    for (int t = 0; t < 10; t++) {
+        for (int j = 0; j < 2; j++) {
+            stores[j].update(rtt, 50.0 + (std::rand() % 100));
+            stores[j].update(queue_len, static_cast<int64_t>(std::rand() % 20));
+            double cwnd = j == 0 ? cwnd_a(stores[j]) : cwnd_b(stores[j]);
             std::cout << "[t= " << t << "] Flow# " << j << " cwnd= " << cwnd << "\n";
         }
     }
+    return 0;
 }
